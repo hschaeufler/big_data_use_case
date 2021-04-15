@@ -7,6 +7,21 @@
 }
 ```
 
+## Initialize
+It's recommended to that you give minikube a little more Memory. With the following commands you can allocate CPUs and Memory to the Kubernets cluster.
+```
+minikube config set memory 8192
+minikube config set cpus 4
+```
+When you have allready started kubernetes, you need to delete the current Cluster und restart it.
+```
+minikube delete
+minikube start
+```
+Don't forget to enable the ingress plugin
+```
+minikube addons enable ingress
+```
 ## Prerequisites
 
 A running Strimzi.io Kafka operator
