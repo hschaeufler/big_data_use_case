@@ -61,3 +61,9 @@ Command for reading the Log-File
 ```bash
 kubectl logs podname
 ```
+### Helm
+When you have problems with hadoop or kafka you can uninstall and install the operator again. To uninstall a release, you first need the name of it. With the following command you can list all releases in the current namespace. Then you can use the name to uninstall it.
+```bash
+helm list
+helm delete my-hadoop-cluster
+```
