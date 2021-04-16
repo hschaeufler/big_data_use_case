@@ -13,7 +13,7 @@ It's recommended to that you give minikube a little more Memory. With the follow
 minikube config set memory 8192
 minikube config set cpus 4
 ```
-When you have allready started kubernetes, you need to delete the current Cluster und restart it.
+When you have already started kubernetes, you need to delete the current Cluster und restart it.
 ```
 minikube delete
 minikube start
@@ -42,3 +42,22 @@ helm install --namespace=default --set hdfs.dataNode.replicas=1 --set yarn.nodeM
 ## Deploy
 
 To develop using [Skaffold](https://skaffold.dev/), use `skaffold dev`. 
+
+## Troubleshooting
+
+Maybe following Commands will help you, when you have Problems running the Use-Case.
+
+Get a overview over the running pods and services:
+```bash
+kubectl get all
+```
+
+Get More Infos about a pod or service:
+```bash
+kubectl descripe podname
+```
+
+Command for reading the Log-File
+```bash
+kubectl logs podname
+```
