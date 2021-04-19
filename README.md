@@ -1,4 +1,4 @@
-# Use Case: Popular NASA Shuttle Missions
+# Use Case: Impfpass
 
 ```json
 { 
@@ -54,7 +54,7 @@ kubectl get all
 
 Get More Infos about a pod or service:
 ```bash
-kubectl descripe podname
+kubectl describe podname
 ```
 
 Command for reading the Log-File
