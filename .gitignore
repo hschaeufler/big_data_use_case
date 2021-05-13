@@ -151,3 +151,6 @@ dist
 # Local History for Visual Studio Code
 .history/
 
+
+# IntelliJ-Folder
+.idea
