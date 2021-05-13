@@ -7,6 +7,14 @@
 }
 ```
 
+## Git Clone
+This Project is using Git submodules. To clone the whole project please proceed as follows:
+
+```
+git clone https://github.com/hschaeufler/big_data_use_case.git
+git submodule init
+git submodule update
+```
 ## Initialize
 It's recommended to that you give minikube a little more Memory. With the following commands you can allocate CPUs and Memory to the Kubernets cluster.
 ```
