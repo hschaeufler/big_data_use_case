@@ -12,10 +12,10 @@ build:
     - image: farberg/popular-slides-spark
       context: spark-app
 
-    - image: bns/vacbook-frontend
+    - image: schaeufler/impfpass-frontend
       context: impfpass-frontend
 
-    - image: bns/vacbook-backend
+    - image: schaeufler/impfpass-backend
       context: impfpass-backend
 
 deploy:

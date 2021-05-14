@@ -69,9 +69,26 @@ Command for reading the Log-File
 ```bash
 kubectl logs podname
 ```
+
+Getting Cluster Events
+```bash
+kubectl get events
+```
+
+Get Endpoints for checking DNS-Errors
+```bash
+kubectl get endpoints
+```
 ### Helm
 When you have problems with hadoop or kafka you can uninstall and install the operator again. To uninstall a release, you first need the name of it. With the following command you can list all releases in the current namespace. Then you can use the name to uninstall it.
 ```bash
 helm list
 helm delete my-hadoop-cluster
+```
+### Mysql DB
+Connect to  the MySQL-Databse with following command:
+```bash
+kubectl get pods
+kubectl exec --stdin --tty [podname] -- /bin/bash
+mysql -u root -p
 ```

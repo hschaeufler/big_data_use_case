@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: impfpassbackend-deployment
+  labels:
+    app: impfpassbackend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: impfpassbackend
+  template:
+    metadata:
+      labels:
+        app: impfpassbackend
+    spec:
+      containers:
+        - name: impfpassbackend
+          image: schaeufler/impfpass-backend
+          ports:
+            - containerPort: 3001
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: impfpassfrontend-deployment
+  labels:
+    app: impfpassfrontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: impfpassfrontend
+  template:
+    metadata:
+      labels:
+        app: impfpassfrontend
+    spec:
+      containers:
+        - name: impfpassfrontend
+          image: schaeufler/impfpass-frontend
+          ports:
+            - containerPort: 3000
+---
+#Impfpass Backend Service
+# see for further details: https://kubernetes.io/docs/concepts/services-networking/service/
+apiVersion: v1
+kind: Service
+metadata:
+  name: impfpass-backend-service
+spec:
+  selector:
+    app: impfpassbackend
+  ports:
+    - protocol: TCP
+      port: 3001
+      targetPort: 3001
+---
+#Impfpass Frontend Service
+# see for further details: https://kubernetes.io/docs/concepts/services-networking/service/
+apiVersion: v1
+kind: Service
+metadata:
+  name: impfpass-frontend-service
+spec:
+  selector:
+    app: impfpassfrontend
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+---
+#Ingress for frontend and backend
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: impfpass-ingress
+#  annotations:
+#    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: impfpass-frontend-service
+                port:
+                  number: 3000
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: impfpass-backend-service
+                port:
+                  number: 3001
