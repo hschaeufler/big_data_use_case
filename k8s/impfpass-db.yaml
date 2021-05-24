@@ -71,6 +71,7 @@ spec:
           persistentVolumeClaim:
             claimName: impfpassdb-pv-claim
 ---
+#see: https://minikube.sigs.k8s.io/docs/handbook/persistent_volumes/
 apiVersion: v1
 kind: PersistentVolume
 metadata:

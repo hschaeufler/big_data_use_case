@@ -92,3 +92,20 @@ kubectl get pods
 kubectl exec --stdin --tty [podname] -- /bin/bash
 mysql -u root -p
 ```
+### Docker
+Build a Dockerfile in current directory (.) and tags it (-t container-name)
+```
+ docker build -t container-name .
+```
+Run the builded Container in detached mode (-d) and connect port (p 3000:3000)
+```
+ docker run -dp 3000:3000 container-name
+```
+Stop a running container container
+```
+docker stop container-name
+```
+Show all running container
+```
+docker ps
+````
