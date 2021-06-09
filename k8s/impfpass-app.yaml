@@ -19,17 +19,50 @@ spec:
           image: schaeufler/impfpass-backend
           ports:
             - containerPort: 3000
-          envFrom:
-            - configMapRef:
-                name: impfpassbackend-configmap
+#          envFrom:
+#            - configMapRef:
+#                name: impfpassapp-configmap
+          env:
+            # Definition of Env-Vars
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: impfpassapp-configmap
+                  key: PORT
+            - name: APP_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: impfpassapp-configmap
+                  key: APP_ENV
+        volumeMounts:
+          - name: config
+            #specify folder
+            mountPath: "/"
+            readOnly: true
+      volumes:
+        # See: https://kubernetes.io/docs/concepts/configuration/configmap/
+        - name: config
+          configMap:
+            name: impfpassapp-configmap
+            # The Keys from the Config-Map to create a file of
+            items:
+              - key: "db.env"
+                path: "db.env"
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: impfpassbackend-configmap
+  name: impfpassapp-configmap
 data:
   PORT: 3000
   APP_ENV: production
+  db.env: |
+    DB_HOST=impfpassdb-service
+    DB_NAME=vacbook
+    DB_PORT=3306
+    DB_WAITFORCONNECTIONS=true
+    DB_CONNECTION_LIMIT=10
+    DB_QUEUE_LIMIT=0
 ---
 apiVersion: apps/v1
 kind: Deployment
