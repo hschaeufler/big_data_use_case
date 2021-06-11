@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- leaflet css  -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            height: 500px; width: 500px
+        }
+
+        .coordinate {
+            position: absolute;
+            bottom: 10px;
+            right: 50%;
+        }
+
+        .leaflet-popup-content-wrapper {
+            background-color: #000000;
+            color: #fff;
+            border: 1px solid red;
+            border-radius: 0px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map">
+        <div class="leaflet-control coordinate"></div>
+    </div>
+</body>
+
+</html>
+
+<!-- leaflet js  -->
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script src="https://github.com/Leaflet/Leaflet.heat/raw/gh-pages/dist/leaflet-heat.js"></script>
+
+
+
+	<script>
+		// Map initialization 
+		var map = L.map('map').setView([48.940318, 8.925018], 6);
+	
+		 var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+			attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+		});
+		osm.addTo(map);
+
+    var heat = L.heatLayer([
+	[50.5 , 30.5, "11"], 
+    [9.3, 50.6, "12"]
+    ],
+    {
+        radius: 25,
+        minOpacity: 1,
+        gradient: {0.1: 'blue', 0.2: 'lime', 1: 'red'}
+    
+    }).addTo(map);
+
+	
+		//var EsMarker = L.marker([48.742154, 9.304733]).addTo(map);
+		//EsMarker.bindPopup("<b>Esslingen</b><br>Vaccination Center Esslingen");
+
+	
+	</script>

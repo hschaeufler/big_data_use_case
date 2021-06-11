@@ -28,8 +28,13 @@ kafkaMessages = spark \
     .load()
 
 # Define schema of tracking data
+#trackingMessageSchema = StructType() \
+#    .add("mission", StringType()) \
+#    .add("timestamp", IntegerType())
+
+# Define schema of tracking data
 trackingMessageSchema = StructType() \
-    .add("mission", StringType()) \
+    .add("location", StringType()) \
     .add("timestamp", IntegerType())
 
 # Example Part 3
@@ -49,7 +54,7 @@ trackingMessages = kafkaMessages.select(
     # Select all JSON fields
     column("json.*")
 ) \
-    .withColumnRenamed('json.mission', 'mission') \
+    .withColumnRenamed('json.location', 'location') \
     .withWatermark("parsed_timestamp", windowDuration)
 
 # Example Part 4
@@ -60,8 +65,8 @@ popular = trackingMessages.groupBy(
         windowDuration,
         slidingDuration
     ),
-    column("mission")
-).count().withColumnRenamed('count', 'views')
+    column("location")
+).count().withColumnRenamed('count', 'vaccs_at_location')
 
 # Example Part 5
 # Start running the query; print running counts to the console
@@ -85,10 +90,10 @@ def saveToDatabase(batchDataframe, batchId):
 
         for row in iterator:
             # Run upsert (insert or update existing)
-            sql = session.sql("INSERT INTO popular "
-                              "(mission, count) VALUES (?, ?) "
+            sql = session.sql("INSERT INTO popularlocs "
+                              "(location, count) VALUES (?, ?) "
                               "ON DUPLICATE KEY UPDATE count=?")
-            sql.bind(row.mission, row.views, row.views).execute()
+            sql.bind(row.location, row.vaccs_at_location, row.vaccs_at_location).execute()
 
         session.close()
 

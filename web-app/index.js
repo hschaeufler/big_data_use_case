@@ -10,6 +10,11 @@ const app = express()
 const cacheTimeSecs = 15
 const numberOfMissions = 30
 
+//Vaccination data fields
+const vaccines = Array("Biontech","Astrazeneca","Moderna","Johnson","Sputnik");
+const locations = Array("Heilbronn","Stuttgart","Tuebingen","Karlsruhe","Esslingen");
+const doctors = Array("Dr.Oetker","Dr.Frankenstein","Dr.Who","Dr.Dolittle","Dr.Watson");
+
 // -------------------------------------------------------
 // Command-line options
 // -------------------------------------------------------
@@ -50,59 +55,49 @@ const dbConfig = {
 };
 
 async function executeQuery(query, data) {
-	let session = await mysqlx.getSession(dbConfig);
-	return await session.sql(query, data).bind(data).execute()
+ let session = await mysqlx.getSession(dbConfig);
+ if(data){
+ 	console.log(query + " <- " + data)
+ 	return await session.sql(query, data).bind(data).execute();
+ } else {
+ 	console.log(query)
+ 	return await session.sql(query).execute();
+ }
 }
 
-// -------------------------------------------------------
-// Memcache Configuration
-// -------------------------------------------------------
+async function callExecuteQuery(locationParam){	
+ const query = "SELECT Imfpstoff, Krankheit, Location, Arzt FROM Anmeldung_Impfung WHERE Location = ?"
+ let data = (await executeQuery(query, [locationParam])).fetchOne()
+ 
+ if (data) {
+	let result = { impfstoff: data[0], krankheit: data[1], location: data[2], arzt: data[3] }
+	return { ...result, cached: false }
+} else {
+	throw "No data found for this location"
+	console.log(":( -err")
+}
+}
 
-//Connect to the memcached instances
-let memcached = null
-let memcachedServers = []
+async function getLocations(){
+	const key = 'locations'
 
-async function getMemcachedServersFromDns() {
-	try {
-		// Query all IP addresses for this hostname
-		let queryResult = await dns.lookup(options.memcachedHostname, { all: true })
-
-		// Create IP:Port mappings
-		let servers = queryResult.map(el => el.address + ":" + options.memcachedPort)
-
-		// Check if the list of servers has changed
-		// and only create a new object if the server list has changed
-		if (memcachedServers.sort().toString() !== servers.sort().toString()) {
-			console.log("Updated memcached server list to ", servers)
-			memcachedServers = servers
-
-			//Disconnect an existing client
-			if (memcached)
-				await memcached.disconnect()
-
-			memcached = new MemcachePlus(memcachedServers);
+		let executeResult = await executeQuery("SELECT name FROM Locations", [])
+		let data = executeResult.fetchAll()
+		if (data) {
+			let result = data.map(row => row[0])
+			return { result, cached: false }
+		} else {
+			throw "No locations-data found"
 		}
-	} catch (e) {
-		console.log("Unable to get memcache servers", e)
-	}
 }
 
-//Initially try to connect to the memcached servers, then each 5s update the list
-getMemcachedServersFromDns()
-setInterval(() => getMemcachedServersFromDns(), options.memcachedUpdateInterval)
-
-//Get data from cache if a cache exists yet
-async function getFromCache(key) {
-	if (!memcached) {
-		console.log(`No memcached instance available, memcachedServers = ${memcachedServers}`)
-		return null;
-	}
-	return await memcached.get(key);
+// Get popular missions (from db only)
+async function getPopular(maxCount) {
+	const query = "SELECT location, count FROM popularlocs ORDER BY count DESC LIMIT ?"
+	return (await executeQuery(query, [maxCount]))
+		.fetchAll()
+		.map(row => ({ location: row[0], count: row[1] }))
 }
-
-// -------------------------------------------------------
-// Kafka Configuration
-// -------------------------------------------------------
 
 // Kafka connection
 const kafka = new Kafka({
@@ -114,13 +109,12 @@ const kafka = new Kafka({
 })
 
 const producer = kafka.producer()
-// End
 
 // Send tracking message to Kafka
 async function sendTrackingMessage(data) {
 	//Ensure the producer is connected
 	await producer.connect()
-
+	console.log("data to be sent to kafka: " + JSON.stringify(data))
 	//Send message
 	await producer.send({
 		topic: options.kafkaTopicTracking,
@@ -129,163 +123,322 @@ async function sendTrackingMessage(data) {
 		]
 	})
 }
-// End
 
-// -------------------------------------------------------
-// HTML helper to send a response to the client
-// -------------------------------------------------------
+async function conduct_vac_at_location(location){
 
-function sendResponse(res, html, cachedResult) {
+	
+	var vac = vaccines[Math.floor(Math.random() * vaccines.length)];
+	var doc = doctors[Math.floor(Math.random() * doctors.length)];
+	const query = "INSERT INTO Anmeldung_Impfung (Imfpstoff, Krankheit, Location, Arzt) VALUES ('"+ vac +"', 'Covid-19', '"+ location +"', '"+ doc +"');"
+	await executeQuery(query)
+		//Send message
+		sendTrackingMessage({
+			location,
+			timestamp: Math.floor(new Date() / 1000)
+		}).then(() => console.log("Single vaccination data has been sent to kafka."))
+		.catch(e => console.log("Error sending your vaccination data to kafka.", e))
+	
+		console.log("done.")
+}
+
+async function produce_random_data() {
+
+	const maxRepetitions = Math.floor(Math.random() * 200)
+
+	for(var i = 0; i < maxRepetitions; ++i) {
+		var location = locations[Math.floor(Math.random() * locations.length)];
+		var vac = vaccines[Math.floor(Math.random() * vaccines.length)];
+		var doc = doctors[Math.floor(Math.random() * doctors.length)];
+
+		
+		//Insert Into MySql
+		const query = "INSERT INTO Anmeldung_Impfung (Imfpstoff, Krankheit, Location, Arzt) VALUES ('"+ vac +"', 'Covid-19', '"+ location +"', '"+ doc +"');"
+		await executeQuery(query)
+
+		//Send message
+		sendTrackingMessage({
+			location,
+			timestamp: Math.floor(new Date() / 1000)
+		}).then(() => console.log("Vaccination data has been sent to kafka."))
+		.catch(e => console.log("Error sending your vaccination data to kafka.", e))
+
+	}
+	console.log("done.")
+}
+
+function sendResponseSingleView(res, html, location) {
 	res.send(`<!DOCTYPE html>
-		<html lang="en">
+		<html lang="en" style = "font-family:helvetica;">
 		<head>
-			<meta charset="UTF-8">
-			<meta name="viewport" content="width=device-width, initial-scale=1.0">
-			<title>Big Data Use-Case Demo</title>
-			<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mini.css/3.0.1/mini-default.min.css">
-			<script>
-				function fetchRandomMissions() {
-					const maxRepetitions = Math.floor(Math.random() * 200)
-					document.getElementById("out").innerText = "Fetching " + maxRepetitions + " random missions, see console output"
-					for(var i = 0; i < maxRepetitions; ++i) {
-						const missionId = Math.floor(Math.random() * ${numberOfMissions})
-						console.log("Fetching mission id " + missionId)
-						fetch("/missions/sts-" + missionId, {cache: 'no-cache'})
-					}
-				}
-			</script>
+		<script>
+		function conduct_vacc_at_center(location) {
+			fetch("/conduct_vac_at_center/${location}", {cache: 'no-cache'})
+		}
+		</script>
 		</head>
 		<body>
-			<h1>Big Data Use Case Demo</h1>
+			<h1>Vaccination Center: "${location}"</h1>	
 			<p>
-				<a href="javascript: fetchRandomMissions();">Randomly fetch some missions</a>
-				<span id="out"></span>
+			<a href="javascript: conduct_vacc_at_center();">
+					<button>💉</button> </a>
 			</p>
 			${html}
 			<hr>
 			<h2>Information about the generated page</h4>
-			<ul>
-				<li>Server: ${os.hostname()}</li>
-				<li>Date: ${new Date()}</li>
-				<li>Using ${memcachedServers.length} memcached Servers: ${memcachedServers}</li>
-				<li>Cached result: ${cachedResult}</li>
-			</ul>
 		</body>
 	</html>
 	`)
 }
 
-// -------------------------------------------------------
-// Start page
-// -------------------------------------------------------
-
-// Get list of missions (from cache or db)
-async function getMissions() {
-	const key = 'missions'
-	let cachedata = await getFromCache(key)
-
-	if (cachedata) {
-		console.log(`Cache hit for key=${key}, cachedata = ${cachedata}`)
-		return { result: cachedata, cached: true }
-	} else {
-		console.log(`Cache miss for key=${key}, querying database`)
-		let executeResult = await executeQuery("SELECT mission FROM missions", [])
-		let data = executeResult.fetchAll()
-		if (data) {
-			let result = data.map(row => row[0])
-			console.log(`Got result=${result}, storing in cache`)
-			if (memcached)
-				await memcached.set(key, result, cacheTimeSecs);
-			return { result, cached: false }
-		} else {
-			throw "No missions data found"
-		}
-	}
+function sendResponse(res, html) {
+	res.send(`<!DOCTYPE html>
+		<html lang="en" style = "font-family:helvetica; color: #537bd2">
+		<head>
+		<script>
+			function conductVaccs() {
+				fetch("/produce_random_data", {cache: 'no-cache'})
+			}
+		</script>
+		</head>
+		<body>
+				<p>
+					<a href="javascript: conductVaccs();">
+					<button>Conduct le vaccinations</button> </a>
+				</p>
+			${html}
+			<hr>
+			<h3>Information about the generated page</h3>
+		</body>
+	</html>
+	`)
 }
 
-// Get popular missions (from db only)
-async function getPopular(maxCount) {
-	const query = "SELECT mission, count FROM popular ORDER BY count DESC LIMIT ?"
-	return (await executeQuery(query, [maxCount]))
-		.fetchAll()
-		.map(row => ({ mission: row[0], count: row[1] }))
+function sendMap(res, html, locations, popular) {
+
+	// for(var i = 0; i < locations.length; ++i) {
+    //     var circle = L.circle([48.742154, 9.304733], {
+    //         color: '#43a6bd',
+    //         fillColor: '#98f5ff',
+    //         fillOpacity: 0.5,
+    //         radius: 5000         //Add location Data to DB
+    //     }).addTo(map);
+
+	// }
+
+	res.send(`
+	${html}
+	<!DOCTYPE html>
+		<html lang="en" style = "font-family:helvetica; color: #537bd2">
+		<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	
+		<!-- leaflet css  -->
+		<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+	
+		<style>
+			body {
+				margin: 0;
+				padding: 15px;
+			}
+	
+			#map {
+				height: 550px; width: 550px
+			}
+		</style>
+	</head>
+	
+	<body>
+		<div id="map">
+			<div class="leaflet-control coordinate"></div>
+		</div>
+	</body>
+	
+	</html>
+	
+	<!-- leaflet js  -->
+	<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+	
+
+	<script>
+		// Map initialization 
+		var map = L.map('map').setView([48.940318, 8.925018], 8);
+	
+		 var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+			attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+		});
+		osm.addTo(map);
+
+        var Escircle = L.circle([48.742154, 9.304733], {
+            color: '#43a6bd',
+            fillColor: '#98f5ff',
+            fillOpacity: 0.5,
+            radius: (10000/${popular[0].count})*${popular[0].count}
+        }).addTo(map);
+
+        var Hbcircle = L.circle([49.138597, 9.223022], {
+            color: '#43a6bd',
+            fillColor: '#98f5ff',
+            fillOpacity: 0.5,
+            radius: (10000/${popular[0].count})*${popular[1].count}
+        }).addTo(map);
+
+        var Stcircle = L.circle([48.781533, 9.18457], {
+            color: '#43a6bd',
+            fillColor: '#98f5ff',
+            fillOpacity: 0.5,
+            radius: (10000/${popular[0].count})*${popular[2].count}
+        }).addTo(map);
+
+        var Tuecircle = L.circle([48.516604, 9.058228], {
+            color: '#43a6bd',
+            fillColor: '#98f5ff',
+            fillOpacity: 0.5,
+            radius: (10000/${popular[0].count})*${popular[3].count}
+        }).addTo(map);
+
+        var Kacircle = L.circle([49.012654, 8.410034], {
+            color: '#43a6bd',
+            fillColor: '#98f5ff',
+            fillOpacity: 0.5,
+            radius: (10000/${popular[0].count})*${popular[4].count}
+        }).addTo(map);
+	
+		
+		Escircle.bindPopup("<b>Esslingen</b><br>Vaccination Center Esslingen");
+        Hbcircle.bindPopup("<b>Heilbronn</b><br>Vaccination Center Heilbronn");
+        Stcircle.bindPopup("<b>Stuttgart</b><br>Vaccination Center Esslingen");
+        Tuecircle.bindPopup("<b>Tuebingen</b><br>Vaccination Center Esslingen");
+        Kacircle.bindPopup("<b>Karlsruhe</b><br>Vaccination Center Karlsruhe");
+
+	
+	</script>
+	`)
 }
 
 // Return HTML for start page
 app.get("/", (req, res) => {
-	const topX = 10;
-	Promise.all([getMissions(), getPopular(topX)]).then(values => {
-		const missions = values[0]
-		const popular = values[1]
-
-		const missionsHtml = missions.result
-			.map(m => `<a href='missions/${m}'>${m}</a>`)
-			.join(", ")
-
-		const popularHtml = popular
-			.map(pop => `<li> <a href='missions/${pop.mission}'>${pop.mission}</a> (${pop.count} views) </li>`)
-			.join("\n")
 
 		const html = `
-			<h1>Top ${topX} Missions</h1>		
+			<h3  >All Vaccination Centres in Germany:</h3>
 			<p>
-				<ol style="margin-left: 2em;"> ${popularHtml} </ol> 
+			<a href='locations/Esslingen'> Esslingen</a> <br>
+			<a href='locations/Karlsruhe'> Karlsruhe </a> <br>
+			<a href='locations/Tuebingen'> Tübingen </a> <br>
+			<a href='locations/Stuttgart'> Stuttgart </a> <br>
+			<a href='locations/Heilbronn'> Heilbronn </a> <br>
+			<a href='dashboard'> >Dashboard< </a> <br>
 			</p>
-			<h1>All Missions</h1>
-			<p> ${missionsHtml} </p>
 		`
-		sendResponse(res, html, missions.cached)
+		sendResponse(res, html)
+
 	})
+
+
+// Return HTML for start page
+app.get("/dashboard", (req, res) => {
+	const topX = 10;
+	Promise.all([getLocations(), getPopular(topX)]).then(values =>{
+		const locations = values[0]
+		const popular = values[1]
+
+		console.log(locations)
+		console.log(popular)
+
+		const popularHtml = popular
+		.map(pop => `<li> <a href='locations/${pop.location}'>${pop.location}</a> (${pop.count} vaccinations) </li>`)
+		.join("\n")
+
+		const locationsHtml = locations.result
+		.map(m => `<a href='locations/${m}'>${m}</a>`)
+		.join(", ")
+
+		const html = `
+		 		<h1>Top ${topX} Vaccination Centers</h1>	
+				 <p>
+				 <ol style="margin-left: 2em;"> ${popularHtml} </ol> 
+			 	 </p>
+				<h1>All Vaccination Centres</h1>
+		 		<p> ${locationsHtml} </p>
+		 	`
+
+		sendResponse(res, html)
+	})
+
 })
 
-// -------------------------------------------------------
-// Get a specific mission (from cache or DB)
-// -------------------------------------------------------
+	app.get("/produce_random_data", (req, res) => {
 
-async function getMission(mission) {
-	const query = "SELECT mission, heading, description FROM missions WHERE mission = ?"
-	const key = 'mission_' + mission
-	let cachedata = await getFromCache(key)
-
-	if (cachedata) {
-		console.log(`Cache hit for key=${key}, cachedata = ${cachedata}`)
-		return { ...cachedata, cached: true }
-	} else {
-		console.log(`Cache miss for key=${key}, querying database`)
-
-		let data = (await executeQuery(query, [mission])).fetchOne()
-		if (data) {
-			let result = { mission: data[0], heading: data[1], description: data[2] }
-			console.log(`Got result=${result}, storing in cache`)
-			if (memcached)
-				await memcached.set(key, result, cacheTimeSecs);
-			return { ...result, cached: false }
-		} else {
-			throw "No data found for this mission"
-		}
-	}
-}
-
-app.get("/missions/:mission", (req, res) => {
-	let mission = req.params["mission"]
-
-	// Send the tracking message to Kafka
-	sendTrackingMessage({
-		mission,
-		timestamp: Math.floor(new Date() / 1000)
-	}).then(() => console.log("Sent to kafka"))
-		.catch(e => console.log("Error sending to kafka", e))
-
-	// Send reply to browser
-	getMission(mission).then(data => {
-		sendResponse(res, `<h1>${data.mission}</h1><p>${data.heading}</p>` +
-			data.description.split("\n").map(p => `<p>${p}</p>`).join("\n"),
-			data.cached
+		produce_random_data().then(
+		res.send(`<!DOCTYPE html>
+		<html lang="en" style = "font-family:helvetica; color: #537bd2">
+		<a>data was sent</a>
+		</html>
+		`)
 		)
-	}).catch(err => {
-		sendResponse(res, `<h1>Error</h1><p>${err}</p>`, false)
 	})
-});
+
+	app.get("/conduct_vac_at_center/:location", (req, res) => {
+
+		location = req.params["location"]
+		conduct_vac_at_location(location).then(
+			res.send(`<!DOCTYPE html>
+			<html lang="en" style = "font-family:helvetica; color: #537bd2">
+			<a>data was sent</a>
+			</html>
+			`)
+			)
+	});
+
+	app.get("/locations/:location", (req, res) => {
+
+		//Städteansicht
+		location = req.params["location"]
+		console.log(location + " was called.")
+		callExecuteQuery(location).then(data => {
+			sendResponseSingleView(res, `<h1>${data.impfstoff}</h1><p>${data.krankheit}</p><p>${data.location}</p>` +
+				data.arzt.split("\n").map(p => `<p>${p}</p>`).join("\n")
+				,location
+			)
+		}).catch(err => {
+			sendResponseSingleView(res, `<h1>Error</h1><p>${err}</p>`, location)
+		})
+	});
+
+	// Return HTML for start page
+app.get("/map", (req, res) => {
+	const topX = 10;
+	Promise.all([getLocations(), getPopular(topX)]).then(values =>{
+		const locations = values[0]
+		const popular = values[1]
+		
+		console.log(popular[0])
+		console.log(popular[1])
+		console.log(popular[2])
+		console.log(popular[3])
+		console.log(popular[4])
+
+		const popularHtml = popular
+		.map(pop => `<li> <a href='locations/${pop.location}'>${pop.location}</a> (${pop.count} vaccinations) </li>`)
+		.join("\n")
+
+		const locationsHtml = locations.result
+		.map(m => `<a href='locations/${m}'>${m}</a>`)
+		.join(", ")
+
+		const html = `
+
+				<h1>Vaccination Overview Germany</h1>
+				<p>
+				<ol style="margin-left: 2em;"> ${popularHtml} </ol> 
+				 </p>
+		 		<p> ${locationsHtml} </p>
+		 	`
+
+	sendMap(res, html, locations, popular)
+	})
+
+})
 
 // -------------------------------------------------------
 // Main method
