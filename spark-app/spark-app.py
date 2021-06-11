@@ -28,11 +28,6 @@ kafkaMessages = spark \
     .load()
 
 # Define schema of tracking data
-#trackingMessageSchema = StructType() \
-#    .add("mission", StringType()) \
-#    .add("timestamp", IntegerType())
-
-# Define schema of tracking data
 trackingMessageSchema = StructType() \
     .add("location", StringType()) \
     .add("timestamp", IntegerType())

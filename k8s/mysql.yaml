@@ -5,11 +5,10 @@ metadata:
   name: mysql-deployment-init-configmap
 data:
   mysql-init.sql: |
-
     CREATE TABLE `Locations` (
       `name` VARCHAR(30) NOT NULL,
-      `lat`  FLOAT NOT NULL,
-      `long`  FLOAT NOT NULL,
+      `lat`  DECIMAL( 9, 7 ) NOT NULL,
+      `lon`  DECIMAL( 9, 7 ) NOT NULL,
       PRIMARY KEY (`name`)
     );
 
@@ -28,93 +27,82 @@ data:
      `Timestamp` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
        PRIMARY KEY (`Uiid`)
     );
+  
+    INSERT INTO Locations (name, lat, lon) VALUES ('Esslingen', 48.7222276, 9.3439680);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Karlsruhe', 48.9813473, 8.3318919);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Tuebingen', 48.5104185, 9.0421243);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Stuttgart', 48.7798492, 9.1688660);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Heilbronn', 49.1141776, 9.1714992);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Boeblingen', 48.7052314, 9.0385375);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Calw', 48.6226985, 8.6437735);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Freiburg', 48.0156738, 7.8398844);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Freudenstadt', 48.4702241, 8.5098592);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Heidelberg', 49.3979625, 8.6522712);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Ulm', 48.4140854, 10.0144895);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Mannheim', 49.4685405, 8.5236946);
 
-    #BaWü
-    INSERT INTO Locations (name, lat, long) VALUES ('Esslingen', 48.7222276, 9.3439680);
-    INSERT INTO Locations (name, lat, long) VALUES ('Karlsruhe', 48.9813473, 8.3318919);
-    INSERT INTO Locations (name, lat, long) VALUES ('Tuebingen', 48.5104185, 9.0421243);
-    INSERT INTO Locations (name, lat, long) VALUES ('Stuttgart', 48.7798492, 9.1688660);
-    INSERT INTO Locations (name, lat, long) VALUES ('Heilbronn', 49.1141776, 9.1714992);
-    INSERT INTO Locations (name, lat, long) VALUES ('Böblingen', 48.7052314, 9.0385375);
-    INSERT INTO Locations (name, lat, long) VALUES ('Calw', 48.6226985, 8.6437735);
-    INSERT INTO Locations (name, lat, long) VALUES ('Freiburg', 48.0156738, 7.8398844);
-    INSERT INTO Locations (name, lat, long) VALUES ('Freudenstadt', 48.4702241, 8.5098592);
-    INSERT INTO Locations (name, lat, long) VALUES ('Heidelberg', 49.3979625, 8.6522712);
-    INSERT INTO Locations (name, lat, long) VALUES ('Ulm', 48.4140854, 10.0144895);
-    INSERT INTO Locations (name, lat, long) VALUES ('Mannheim ', 49.4685405, 8.5236946);
 
-    #Bayern
-    INSERT INTO Locations (name, lat, long) VALUES ('Augsburg', 48.3218848, 10.8916202);
-    INSERT INTO Locations (name, lat, long) VALUES ('Aschaffenburg', 50.0060488, 9.2220556);
-    INSERT INTO Locations (name, lat, long) VALUES ('Dachau', 48.2561781, 11.4343521);
-    INSERT INTO Locations (name, lat, long) VALUES ('Erding', 48.3086446, 11.9103102);
-    INSERT INTO Locations (name, lat, long) VALUES ('Ingolstadt', 49.4685405, 8.5236946);
-    INSERT INTO Locations (name, lat, long) VALUES ('München', 48.1386152, 11.6979861);
-    INSERT INTO Locations (name, lat, long) VALUES ('Nürnberg', 49.4166133, 11.1186528);
-    INSERT INTO Locations (name, lat, long) VALUES ('Passau', 48.5576990, 13.4111614);
-    INSERT INTO Locations (name, lat, long) VALUES ('Regensburg',  49.0263160, 12.0906031);
-    INSERT INTO Locations (name, lat, long) VALUES ('Würzburg', 49.6565250, 9.9736628);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Augsburg', 48.3218848, 10.8916202);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Aschaffenburg', 50.0060488, 9.2220556);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Dachau', 48.2561781, 11.4343521);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Erding', 48.3086446, 11.9103102);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Ingolstadt', 49.4685405, 8.5236946);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Muenchen', 48.1386152, 11.6979861);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Nuernberg', 49.4166133, 11.1186528);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Passau', 48.5576990, 13.4111614);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Regensburg',  49.0263160, 12.0906031);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Wuerzburg', 49.6565250, 9.9736628);
 
-    #Berlin
-    INSERT INTO Locations (name, lat, long) VALUES ('Berlin', 52.5068413, 13.2733418);
 
-    #Brandenburg
-    INSERT INTO Locations (name, lat, long) VALUES ('Frankfurt-Oder', 52.3438051, 14.4968290);
-    INSERT INTO Locations (name, lat, long) VALUES ('Cottbus', 51.7504929, 14.3488732);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Berlin', 52.5068413, 13.2733418);
 
-    #Bremen
-    INSERT INTO Locations (name, lat, long) VALUES ('Bremen', 53.0890331, 8.8115609);
 
-    #Hamburg
-    INSERT INTO Locations (name, lat, long) VALUES ('Hamburg', 53.5631727, 9.9705704);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Frankfurt-Oder', 52.3438051, 14.4968290);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Cottbus', 51.7504929, 14.3488732);
 
-    #Hessen
-    INSERT INTO Locations (name, lat, long) VALUES ('Darmstadt', 49.8745287, 8.6577973);
-    INSERT INTO Locations (name, lat, long) VALUES ('Frankfurt-am-Main', 50.1119426, 8.6508741);
 
-    #MVP
-    INSERT INTO Locations (name, lat, long) VALUES ('Rostock', 54.1388724, 12.0731009);
-    INSERT INTO Locations (name, lat, long) VALUES ('Schwerin', 53.6276772, 11.3929376);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Bremen', 53.0890331, 8.8115609);
 
-    #NiedS
-    INSERT INTO Locations (name, lat, long) VALUES ('Braunschweig', 52.2574988, 10.5396027);
-    INSERT INTO Locations (name, lat, long) VALUES ('Göttingen', 51.5389285, 9.9226351);
-    INSERT INTO Locations (name, lat, long) VALUES ('Hannover', 52.3226934, 9.8034852);
-    INSERT INTO Locations (name, lat, long) VALUES ('Osnabrück', 52.2706753, 8.0410536);
 
-    #NrWf
-    INSERT INTO Locations (name, lat, long) VALUES ('Aachen', 50.7952695, 6.1008586);
-    INSERT INTO Locations (name, lat, long) VALUES ('Bielefeld', 52.0288399, 8.5347421);
-    INSERT INTO Locations (name, lat, long) VALUES ('Bonn', 50.7185800, 7.1240392);
-    INSERT INTO Locations (name, lat, long) VALUES ('Dortmund', 51.4886686, 7.4885881);
-    INSERT INTO Locations (name, lat, long) VALUES ('Wuppertal', 51.2395735, 7.1623530);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Hamburg', 53.5631727, 9.9705704);
 
-    #Rpfz
-    INSERT INTO Locations (name, lat, long) VALUES ('Trier', 51.2395735, 7.1623530);
-    INSERT INTO Locations (name, lat, long) VALUES ('Mainz', 49.9864491, 8.0444346);
-    INSERT INTO Locations (name, lat, long) VALUES ('Frankenthal', 49.5318892, 8.3468789);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Darmstadt', 49.8745287, 8.6577973);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Frankfurt-am-Main', 50.1119426, 8.6508741);
 
-    #Srlnd
-    INSERT INTO Locations (name, lat, long) VALUES ('Saarbrücken', 49.233741, 6.990738);
-    INSERT INTO Locations (name, lat, long) VALUES ('Neunkirchen', 49.349954, 7.182655);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Rostock', 54.1388724, 12.0731009);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Schwerin', 53.6276772, 11.3929376);
 
-    #Sachsen
-    INSERT INTO Locations (name, lat, long) VALUES ('Dresden', 51.0698009, 13.7149459);
-    INSERT INTO Locations (name, lat, long) VALUES ('Leipzig', 51.3951925, 12.4049179);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Braunschweig', 52.2574988, 10.5396027);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Goettingen', 51.5389285, 9.9226351);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Hannover', 52.3226934, 9.8034852);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Osnabrueck', 52.2706753, 8.0410536);
 
-    #Sach-Anh
-    INSERT INTO Locations (name, lat, long) VALUES ('Halle', 51.4845029, 11.9785899);
-    INSERT INTO Locations (name, lat, long) VALUES ('Magdeburg', 52.1354624, 11.67179139);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Aachen', 50.7952695, 6.1008586);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Bielefeld', 52.0288399, 8.5347421);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Bonn', 50.7185800, 7.1240392);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Dortmund', 51.4886686, 7.4885881);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Wuppertal', 51.2395735, 7.1623530);
 
-    #SchlswHst
-    INSERT INTO Locations (name, lat, long) VALUES ('Flensburg', 54.8174062, 9.4641616);
-    INSERT INTO Locations (name, lat, long) VALUES ('Lübeck', 53.8697224, 10.6780893);
-    INSERT INTO Locations (name, lat, long) VALUES ('Kiel',  54.3197690, 10.1388467);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Trier', 51.2395735, 7.1623530);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Mainz', 49.9864491, 8.0444346);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Frankenthal', 49.5318892, 8.3468789);
 
-    #Thür
-    INSERT INTO Locations (name, lat, long) VALUES ('Erfurt', 50.9932795, 11.0133948);
-    INSERT INTO Locations (name, lat, long) VALUES ('Suhl', 50.6121836, 10.6938279);
-    INSERT INTO Locations (name, lat, long) VALUES ('Weimar', 50.9814299, 11.3258372);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Saarbruecken', 49.233741, 6.990738);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Neunkirchen', 49.349954, 7.182655);
+
+    INSERT INTO Locations (name, lat, lon) VALUES ('Dresden', 51.0698009, 13.7149459);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Leipzig', 51.3951925, 12.4049179);
+
+    INSERT INTO Locations (name, lat, lon) VALUES ('Halle', 51.4845029, 11.9785899);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Magdeburg', 52.1354624, 11.67179139);
+
+    INSERT INTO Locations (name, lat, lon) VALUES ('Flensburg', 54.8174062, 9.4641616);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Luebeck', 53.8697224, 10.6780893);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Kiel',  54.3197690, 10.1388467);
+
+    INSERT INTO Locations (name, lat, lon) VALUES ('Erfurt', 50.9932795, 11.0133948);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Suhl', 50.6121836, 10.6938279);
+    INSERT INTO Locations (name, lat, lon) VALUES ('Weimar', 50.9814299, 11.3258372);
 
 
 

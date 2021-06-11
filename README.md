@@ -36,7 +36,7 @@ restart
 kubectl rollout restart deployment mysql-deployment -n default
 ### Mysql DB
 kubectl get pods
-kubectl exec --stdin --tty [podname] -- /bin/bash
+kubectl exec --stdin --tty [podname] -- /bin/bash 
 mysql -u root -p
 SHOW DATABASES;  			; <- !
 use popular;
@@ -58,7 +58,7 @@ Hadoop:
  helm delete my-hadoop-cluster
 
 
-restart popular slides:
+restart popular slides spark:
 kubectl rollout restart deployment popular-slides-spark -n default
 
 

@@ -81,11 +81,13 @@ async function callExecuteQuery(locationParam){
 async function getLocations(){
 	const key = 'locations'
 
-		let executeResult = await executeQuery("SELECT name FROM Locations", [])
+		let executeResult = await executeQuery("SELECT name, lat, lon FROM Locations", []) 
 		let data = executeResult.fetchAll()
 		if (data) {
-			let result = data.map(row => row[0])
-			return { result, cached: false }
+			let city = data.map(row => row[0])
+			let lat = data.map(row => row[1])
+			let lon = data.map(row => row[2])
+			return { city, lat, lon} // , cached False
 		} else {
 			throw "No locations-data found"
 		}
@@ -141,27 +143,34 @@ async function conduct_vac_at_location(location){
 		console.log("done.")
 }
 
-async function produce_random_data() {
+function timeout(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
-	const maxRepetitions = Math.floor(Math.random() * 200)
+async function produce_random_data(locations) {
+
+	const maxRepetitions = Math.floor(Math.random() * 150)
+	console.log("the locations in produce data: " + locations)
 
 	for(var i = 0; i < maxRepetitions; ++i) {
-		var location = locations[Math.floor(Math.random() * locations.length)];
-		var vac = vaccines[Math.floor(Math.random() * vaccines.length)];
-		var doc = doctors[Math.floor(Math.random() * doctors.length)];
-
 		
-		//Insert Into MySql
-		const query = "INSERT INTO Anmeldung_Impfung (Imfpstoff, Krankheit, Location, Arzt) VALUES ('"+ vac +"', 'Covid-19', '"+ location +"', '"+ doc +"');"
-		await executeQuery(query)
+			var location = locations[Math.floor(Math.random() * locations.length)];
+			var vac = vaccines[Math.floor(Math.random() * vaccines.length)];
+			var doc = doctors[Math.floor(Math.random() * doctors.length)];
 
-		//Send message
-		sendTrackingMessage({
-			location,
-			timestamp: Math.floor(new Date() / 1000)
-		}).then(() => console.log("Vaccination data has been sent to kafka."))
-		.catch(e => console.log("Error sending your vaccination data to kafka.", e))
+			
+			//Insert Into MySql
+			const query = "INSERT INTO Anmeldung_Impfung (Imfpstoff, Krankheit, Location, Arzt) VALUES ('"+ vac +"', 'Covid-19', '"+ location +"', '"+ doc +"');"
+			await executeQuery(query)
 
+			//Send message
+			sendTrackingMessage({
+				location,
+				timestamp: Math.floor(new Date() / 1000)
+			}).then(() => console.log("Vaccination data has been sent to kafka."))
+			.catch(e => console.log("Error sending your vaccination data to kafka.", e))
+
+			await timeout(50);
 	}
 	console.log("done.")
 }
@@ -214,16 +223,10 @@ function sendResponse(res, html) {
 }
 
 function sendMap(res, html, locations, popular) {
+	
 
-	// for(var i = 0; i < locations.length; ++i) {
-    //     var circle = L.circle([48.742154, 9.304733], {
-    //         color: '#43a6bd',
-    //         fillColor: '#98f5ff',
-    //         fillOpacity: 0.5,
-    //         radius: 5000         //Add location Data to DB
-    //     }).addTo(map);
-
-	// }
+	var locationsAsString = JSON.stringify(locations)
+	var popularAsString = JSON.stringify(popular)
 
 	res.send(`
 	${html}
@@ -262,48 +265,43 @@ function sendMap(res, html, locations, popular) {
 
 	<script>
 		// Map initialization 
-		var map = L.map('map').setView([48.940318, 8.925018], 8);
+		var map = L.map('map').setView([50.9932795, 11.0133948], 6);
 	
 		 var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 			attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 		});
 		osm.addTo(map);
 
-        var Escircle = L.circle([48.742154, 9.304733], {
-            color: '#43a6bd',
-            fillColor: '#98f5ff',
-            fillOpacity: 0.5,
-            radius: (10000/${popular[0].count})*${popular[0].count}
-        }).addTo(map);
+		var serializedLocs = ${locationsAsString}
+		var serializedPops = ${popularAsString}
+		var locationObj = serializedLocs
+		var popularObj = serializedPops
+		
+		for(var i = 0; i < locationObj.city.length; ++i) {
+			var currentloc = ""
+			var radius1 = 0
+			for(var j = 0; j < popularObj.length; ++j) {
+				if(locationObj.city[j] == popularObj[j].location){
+					console.log("match!")
+					currentloc = locationObj.city[j]
+					radius = (10000/popular[0].count)*popular[j].count
+				}else{
+					radius1 = 5000
+				}
 
-        var Hbcircle = L.circle([49.138597, 9.223022], {
-            color: '#43a6bd',
-            fillColor: '#98f5ff',
-            fillOpacity: 0.5,
-            radius: (10000/${popular[0].count})*${popular[1].count}
-        }).addTo(map);
+			}
+			var Newcircle = L.circle([ locationObj.lat[i], locationObj.lon[i]], {
+				color: '#43a6bd',
+				fillColor: '#98f5ff',
+				fillOpacity: 0.5,
+				radius: 5000
+			}).addTo(map);
 
-        var Stcircle = L.circle([48.781533, 9.18457], {
-            color: '#43a6bd',
-            fillColor: '#98f5ff',
-            fillOpacity: 0.5,
-            radius: (10000/${popular[0].count})*${popular[2].count}
-        }).addTo(map);
+			var city = locationObj.city[i]
 
-        var Tuecircle = L.circle([48.516604, 9.058228], {
-            color: '#43a6bd',
-            fillColor: '#98f5ff',
-            fillOpacity: 0.5,
-            radius: (10000/${popular[0].count})*${popular[3].count}
-        }).addTo(map);
+			Newcircle.bindPopup("<b>" + city + "</b><br>Vaccination Center " + city);
 
-        var Kacircle = L.circle([49.012654, 8.410034], {
-            color: '#43a6bd',
-            fillColor: '#98f5ff',
-            fillOpacity: 0.5,
-            radius: (10000/${popular[0].count})*${popular[4].count}
-        }).addTo(map);
-	
+		}
 		
 		Escircle.bindPopup("<b>Esslingen</b><br>Vaccination Center Esslingen");
         Hbcircle.bindPopup("<b>Heilbronn</b><br>Vaccination Center Heilbronn");
@@ -318,20 +316,21 @@ function sendMap(res, html, locations, popular) {
 
 // Return HTML for start page
 app.get("/", (req, res) => {
-
-		const html = `
-			<h3  >All Vaccination Centres in Germany:</h3>
-			<p>
-			<a href='locations/Esslingen'> Esslingen</a> <br>
-			<a href='locations/Karlsruhe'> Karlsruhe </a> <br>
-			<a href='locations/Tuebingen'> Tübingen </a> <br>
-			<a href='locations/Stuttgart'> Stuttgart </a> <br>
-			<a href='locations/Heilbronn'> Heilbronn </a> <br>
-			<a href='dashboard'> >Dashboard< </a> <br>
-			</p>
-		`
-		sendResponse(res, html)
-
+		Promise.all([getLocations()]).then(values =>{
+			const locations = values[0]
+			
+			const locationsHtml = locations.city
+			.map(m => `<a href='locations/${m}'>${m}</a>`)
+			.join(", ")
+	
+			const html = `
+					<h1>All Vaccination Centres in Germany:</h1>
+					<p>
+					<ol style="margin-left: 2em;"> ${locationsHtml} </ol> 
+					 </p>
+				 `
+			sendResponse(res, html)
+		})
 	})
 
 
@@ -342,14 +341,11 @@ app.get("/dashboard", (req, res) => {
 		const locations = values[0]
 		const popular = values[1]
 
-		console.log(locations)
-		console.log(popular)
-
 		const popularHtml = popular
 		.map(pop => `<li> <a href='locations/${pop.location}'>${pop.location}</a> (${pop.count} vaccinations) </li>`)
 		.join("\n")
 
-		const locationsHtml = locations.result
+		const locationsHtml = locations.city
 		.map(m => `<a href='locations/${m}'>${m}</a>`)
 		.join(", ")
 
@@ -369,13 +365,19 @@ app.get("/dashboard", (req, res) => {
 
 	app.get("/produce_random_data", (req, res) => {
 
-		produce_random_data().then(
-		res.send(`<!DOCTYPE html>
-		<html lang="en" style = "font-family:helvetica; color: #537bd2">
-		<a>data was sent</a>
-		</html>
-		`)
-		)
+
+		Promise.all([getLocations()]).then(values =>{
+			const locations = values[0]
+				
+			produce_random_data(locations.city).then(
+				res.send(`<!DOCTYPE html>
+				<html lang="en" style = "font-family:helvetica; color: #537bd2">
+				<a>data was sent</a>
+				</html>
+				`)
+				)
+		})
+
 	})
 
 	app.get("/conduct_vac_at_center/:location", (req, res) => {
@@ -412,17 +414,11 @@ app.get("/map", (req, res) => {
 		const locations = values[0]
 		const popular = values[1]
 		
-		console.log(popular[0])
-		console.log(popular[1])
-		console.log(popular[2])
-		console.log(popular[3])
-		console.log(popular[4])
-
 		const popularHtml = popular
 		.map(pop => `<li> <a href='locations/${pop.location}'>${pop.location}</a> (${pop.count} vaccinations) </li>`)
 		.join("\n")
 
-		const locationsHtml = locations.result
+		const locationsHtml = locations.city
 		.map(m => `<a href='locations/${m}'>${m}</a>`)
 		.join(", ")
 
