@@ -208,28 +208,69 @@ function sendResponse(res, html) {
 				fetch("/produce_random_data", {cache: 'no-cache'})
 			}
 		</script>
+
+		<style>
+									/* Add a black background color to the top navigation */
+									.topnav {
+									background-color: #333;
+									overflow: hidden;
+									}
+									
+									/* Style the links inside the navigation bar */
+									.topnav a {
+									float: left;
+									color: #f2f2f2;
+									text-align: center;
+									padding: 14px 16px;
+									text-decoration: none;
+									font-size: 17px;
+									}
+									
+									/* Change the color of links on hover */
+									.topnav a:hover {
+									background-color: #ddd;
+									color: black;
+									}
+									
+									/* Add a color to the active/current link */
+									.topnav a.active {
+									background-color: #04AA6D;
+									color: white;
+									}
+									body {
+										margin: 0;
+									}
+    	</style>
+
 		</head>
 		<body>
+			<div class="topnav">
+				<a class="active" href="/">Home</a>
+				<a href="map">Map</a>
+				<a href="dashboard">Dashboard</a>
+				<a href="">About</a>
+			</div> 
+
+			<h1>All Vaccination Centres in Germany:</h1>
+				${html}
 				<p>
 					<a href="javascript: conductVaccs();">
-					<button>Conduct le vaccinations</button> </a>
+						<button>Conduct le vaccinations</button> 
+					</a>
 				</p>
-			${html}
 			<hr>
-			<h3>Information about the generated page</h3>
 		</body>
 	</html>
 	`)
 }
 
-function sendMap(res, html, locations, popular) {
+function sendSingleCenterMap(res, html, location) {
 	
 
-	var locationsAsString = JSON.stringify(locations)
-	var popularAsString = JSON.stringify(popular)
+	var locationsAsString = JSON.stringify(location)
+	console.log(locationsAsString)
 
 	res.send(`
-	${html}
 	<!DOCTYPE html>
 		<html lang="en" style = "font-family:helvetica; color: #537bd2">
 		<head>
@@ -242,20 +283,151 @@ function sendMap(res, html, locations, popular) {
 		<style>
 			body {
 				margin: 0;
-				padding: 15px;
 			}
 	
 			#map {
 				height: 550px; width: 550px
 			}
+
+			/* Add a black background color to the top navigation */
+			.topnav {
+			background-color: #333;
+			overflow: hidden;
+			}
+			
+			/* Style the links inside the navigation bar */
+			.topnav a {
+			float: left;
+			color: #f2f2f2;
+			text-align: center;
+			padding: 14px 16px;
+			text-decoration: none;
+			font-size: 17px;
+			}
+			
+			/* Change the color of links on hover */
+			.topnav a:hover {
+			background-color: #ddd;
+			color: black;
+			}
+			
+			/* Add a color to the active/current link */
+			.topnav a.active {
+			background-color: #04AA6D;
+			color: white;
+			}
+
 		</style>
 	</head>
 	
 	<body>
-		<div id="map">
+
+		<div class="topnav">
+			<a class="active" href="/">Home</a>
+			<a href="map">Map</a>
+			<a href="dashboard">Dashboard</a>
+			<a href="">About</a>
+		</div> 
+
+		<div id="map" style="float: left; width:50%;">
 			<div class="leaflet-control coordinate"></div>
 		</div>
 	</body>
+
+	${html}
+	
+	</html>
+	
+	<!-- leaflet js  -->
+	<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+	
+
+	<script>
+		// Map initialization 
+		var map = L.map('map').setView([50.9932795, 11.0133948], 6);
+	
+		 var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+			attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+		});
+		osm.addTo(map);
+
+		console.log(${locationsAsString})
+
+	</script>
+	`)
+}
+
+function sendMap(res, html, locations, popular) {
+	
+
+	var locationsAsString = JSON.stringify(locations)
+	var popularAsString = JSON.stringify(popular)
+
+	res.send(`
+	<!DOCTYPE html>
+		<html lang="en" style = "font-family:helvetica; color: #537bd2">
+		<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	
+		<!-- leaflet css  -->
+		<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+	
+		<style>
+			body {
+				margin: 0;
+			}
+	
+			#map {
+				height: 550px; width: 550px
+			}
+
+			/* Add a black background color to the top navigation */
+			.topnav {
+			background-color: #333;
+			overflow: hidden;
+			}
+			
+			/* Style the links inside the navigation bar */
+			.topnav a {
+			float: left;
+			color: #f2f2f2;
+			text-align: center;
+			padding: 14px 16px;
+			text-decoration: none;
+			font-size: 17px;
+			}
+			
+			/* Change the color of links on hover */
+			.topnav a:hover {
+			background-color: #ddd;
+			color: black;
+			}
+			
+			/* Add a color to the active/current link */
+			.topnav a.active {
+			background-color: #04AA6D;
+			color: white;
+			}
+
+		</style>
+	</head>
+	
+	<body>
+
+		<div class="topnav">
+			<a class="active" href="/">Home</a>
+			<a href="map">Map</a>
+			<a href="dashboard">Dashboard</a>
+			<a href="">About</a>
+		</div> 
+
+		<div id="map" style="float: left; width:50%;">
+			<div class="leaflet-control coordinate"></div>
+		</div>
+	</body>
+
+	${html}
 	
 	</html>
 	
@@ -277,39 +449,25 @@ function sendMap(res, html, locations, popular) {
 		var locationObj = serializedLocs
 		var popularObj = serializedPops
 		
-		for(var i = 0; i < locationObj.city.length; ++i) {
-			var currentloc = ""
-			var radius1 = 0
-			for(var j = 0; j < popularObj.length; ++j) {
-				if(locationObj.city[j] == popularObj[j].location){
-					console.log("match!")
-					currentloc = locationObj.city[j]
-					radius = (10000/popular[0].count)*popular[j].count
-				}else{
-					radius1 = 5000
+		for(var i = 0; i < locationObj.city.length; i++) {
+			var radius = 5000
+			var count = 0
+			for(var j = 0; j < popularObj.length; j++) {
+				if(locationObj.city[i] == popularObj[j].location){
+					radius = (40000/popularObj[0].count)*popularObj[j].count
+					count = popularObj[j].count
 				}
-
 			}
 			var Newcircle = L.circle([ locationObj.lat[i], locationObj.lon[i]], {
 				color: '#43a6bd',
 				fillColor: '#98f5ff',
 				fillOpacity: 0.5,
-				radius: 5000
+				radius: radius
 			}).addTo(map);
 
-			var city = locationObj.city[i]
-
-			Newcircle.bindPopup("<b>" + city + "</b><br>Vaccination Center " + city);
-
+			var currentCity = locationObj.city[i]
+			Newcircle.bindPopup("<b>" + currentCity + "</b><br>Vaccination Center " + currentCity + "<br> Count: " + count);
 		}
-		
-		Escircle.bindPopup("<b>Esslingen</b><br>Vaccination Center Esslingen");
-        Hbcircle.bindPopup("<b>Heilbronn</b><br>Vaccination Center Heilbronn");
-        Stcircle.bindPopup("<b>Stuttgart</b><br>Vaccination Center Esslingen");
-        Tuecircle.bindPopup("<b>Tuebingen</b><br>Vaccination Center Esslingen");
-        Kacircle.bindPopup("<b>Karlsruhe</b><br>Vaccination Center Karlsruhe");
-
-	
 	</script>
 	`)
 }
@@ -324,7 +482,6 @@ app.get("/", (req, res) => {
 			.join(", ")
 	
 			const html = `
-					<h1>All Vaccination Centres in Germany:</h1>
 					<p>
 					<ol style="margin-left: 2em;"> ${locationsHtml} </ol> 
 					 </p>
@@ -393,23 +550,32 @@ app.get("/dashboard", (req, res) => {
 	});
 
 	app.get("/locations/:location", (req, res) => {
-
-		//Städteansicht
+		
+ 		const query = "Select * from Locations Where name = ?"
 		location = req.params["location"]
-		console.log(location + " was called.")
-		callExecuteQuery(location).then(data => {
-			sendResponseSingleView(res, `<h1>${data.impfstoff}</h1><p>${data.krankheit}</p><p>${data.location}</p>` +
-				data.arzt.split("\n").map(p => `<p>${p}</p>`).join("\n")
-				,location
-			)
-		}).catch(err => {
-			sendResponseSingleView(res, `<h1>Error</h1><p>${err}</p>`, location)
+		const html = ``
+		
+		Promise.all([executeQuery(query, location)]).then(values =>{
+			const result = values[0]
+			sendSingleCenterMap(res, html, result)
 		})
+
+		// callExecuteQuery(location).then(data => {
+		// 	sendResponseSingleView(res, `<h1>${data.impfstoff}</h1><p>${data.krankheit}</p><p>${data.location}</p>` +
+		// 		data.arzt.split("\n").map(p => `<p>${p}</p>`).join("\n")
+		// 		,location
+		// 	)
+		// }).catch(err => {
+		// 	sendResponseSingleView(res, `<h1>Error</h1><p>${err}</p>`, location)
+		// })
+
+		
+		
 	});
 
 	// Return HTML for start page
 app.get("/map", (req, res) => {
-	const topX = 10;
+	const topX = 100;
 	Promise.all([getLocations(), getPopular(topX)]).then(values =>{
 		const locations = values[0]
 		const popular = values[1]
@@ -423,10 +589,8 @@ app.get("/map", (req, res) => {
 		.join(", ")
 
 		const html = `
-
-				<h1>Vaccination Overview Germany</h1>
 				<p>
-				<ol style="margin-left: 2em;"> ${popularHtml} </ol> 
+				<ol style="margin-left: 52% ;"> ${popularHtml} </ol> 
 				 </p>
 		 		<p> ${locationsHtml} </p>
 		 	`
