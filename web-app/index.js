@@ -65,21 +65,19 @@ async function executeQuery(query, data) {
  }
 }
 
-async function callExecuteQuery(locationParam){	
- const query = "SELECT Imfpstoff, Krankheit, Location, Arzt FROM Anmeldung_Impfung WHERE Location = ?"
- let data = (await executeQuery(query, [locationParam])).fetchOne()
- 
- if (data) {
-	let result = { impfstoff: data[0], krankheit: data[1], location: data[2], arzt: data[3] }
-	return { ...result, cached: false }
-} else {
-	throw "No data found for this location"
-	console.log(":( -err")
-}
+async function getSingleLocation(location){
+	
+	const query = "Select * from Locations Where name = ?"
+	let executeResult = await executeQuery(query, location) 
+	let data = executeResult.fetchAll()
+	if (data) {
+		return data // , cached False
+	} else {
+		throw "No Single-location-data found"
+	}
 }
 
 async function getLocations(){
-	const key = 'locations'
 
 		let executeResult = await executeQuery("SELECT name, lat, lon FROM Locations", []) 
 		let data = executeResult.fetchAll()
@@ -175,30 +173,6 @@ async function produce_random_data(locations) {
 	console.log("done.")
 }
 
-function sendResponseSingleView(res, html, location) {
-	res.send(`<!DOCTYPE html>
-		<html lang="en" style = "font-family:helvetica;">
-		<head>
-		<script>
-		function conduct_vacc_at_center(location) {
-			fetch("/conduct_vac_at_center/${location}", {cache: 'no-cache'})
-		}
-		</script>
-		</head>
-		<body>
-			<h1>Vaccination Center: "${location}"</h1>	
-			<p>
-			<a href="javascript: conduct_vacc_at_center();">
-					<button>💉</button> </a>
-			</p>
-			${html}
-			<hr>
-			<h2>Information about the generated page</h4>
-		</body>
-	</html>
-	`)
-}
-
 function sendResponse(res, html) {
 	res.send(`<!DOCTYPE html>
 		<html lang="en" style = "font-family:helvetica; color: #537bd2">
@@ -246,9 +220,9 @@ function sendResponse(res, html) {
 		<body>
 			<div class="topnav">
 				<a class="active" href="/">Home</a>
-				<a href="map">Map</a>
-				<a href="dashboard">Dashboard</a>
-				<a href="">About</a>
+				<a href="/map">Map</a>
+				<a href="/dashboard">Dashboard</a>
+				<a href="/about">About</a>
 			</div> 
 
 			<h1>All Vaccination Centres in Germany:</h1>
@@ -264,11 +238,12 @@ function sendResponse(res, html) {
 	`)
 }
 
-function sendSingleCenterMap(res, html, location) {
+function sendSingleCenterMap(res, html, location, popular) {
 	
 
 	var locationsAsString = JSON.stringify(location)
-	console.log(locationsAsString)
+	var popularAsString = JSON.stringify(popular)
+	console.log(popularAsString)
 
 	res.send(`
 	<!DOCTYPE html>
@@ -324,9 +299,9 @@ function sendSingleCenterMap(res, html, location) {
 
 		<div class="topnav">
 			<a class="active" href="/">Home</a>
-			<a href="map">Map</a>
-			<a href="dashboard">Dashboard</a>
-			<a href="">About</a>
+			<a href="/map">Map</a>
+			<a href="/dashboard">Dashboard</a>
+			<a href="/about">About</a>
 		</div> 
 
 		<div id="map" style="float: left; width:50%;">
@@ -351,7 +326,31 @@ function sendSingleCenterMap(res, html, location) {
 		});
 		osm.addTo(map);
 
-		console.log(${locationsAsString})
+		
+		var locationObjContainer = ${locationsAsString}
+		var locationObj = locationObjContainer[0]
+		var popularObj = ${popularAsString}
+
+		var currentCity = locationObj[0]
+		
+		var radius = 5000
+		var count = 0
+		for(var j = 0; j < popularObj.length; j++) {
+			if(locationObj[0] == popularObj[j].location){
+				radius = (40000/popularObj[0].count)*popularObj[j].count
+				count = popularObj[j].count
+			}
+		}
+		console.log(locationObj)
+		var Newcircle = L.circle([ locationObj[1], locationObj[2]], {
+			color: '#43a6bd',
+			fillColor: '#98f5ff',
+			fillOpacity: 0.5,
+			radius: radius
+		}).addTo(map);
+
+		Newcircle.bindPopup("<b>" + currentCity + "</b><br>Vaccination Center " + currentCity + "<br> Count: " + count);
+		
 
 	</script>
 	`)
@@ -550,32 +549,19 @@ app.get("/dashboard", (req, res) => {
 	});
 
 	app.get("/locations/:location", (req, res) => {
-		
- 		const query = "Select * from Locations Where name = ?"
+		const topX = 200;		
 		location = req.params["location"]
 		const html = ``
-		
-		Promise.all([executeQuery(query, location)]).then(values =>{
-			const result = values[0]
-			sendSingleCenterMap(res, html, result)
+		Promise.all([getSingleLocation(location), getPopular(topX)]).then(values =>{
+			const location = values[0]
+			const popular = values[1]
+			sendSingleCenterMap(res, html, location, popular)
 		})
-
-		// callExecuteQuery(location).then(data => {
-		// 	sendResponseSingleView(res, `<h1>${data.impfstoff}</h1><p>${data.krankheit}</p><p>${data.location}</p>` +
-		// 		data.arzt.split("\n").map(p => `<p>${p}</p>`).join("\n")
-		// 		,location
-		// 	)
-		// }).catch(err => {
-		// 	sendResponseSingleView(res, `<h1>Error</h1><p>${err}</p>`, location)
-		// })
-
-		
-		
 	});
 
 	// Return HTML for start page
 app.get("/map", (req, res) => {
-	const topX = 100;
+	const topX = 200;
 	Promise.all([getLocations(), getPopular(topX)]).then(values =>{
 		const locations = values[0]
 		const popular = values[1]
