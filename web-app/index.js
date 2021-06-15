@@ -229,7 +229,7 @@ function sendResponse(res, html) {
 				${html}
 				<p>
 					<a href="javascript: conductVaccs();">
-						<button>Conduct le vaccinations</button> 
+						<button>Conduct random vaccinations</button> 
 					</a>
 				</p>
 			<hr>
@@ -240,7 +240,15 @@ function sendResponse(res, html) {
 
 function sendSingleCenterMap(res, html, location, popular) {
 	
+	var locationObj = location[0]
+	var centerName = locationObj[0]
+	var count = 0
 
+	for(var j = 0; j < popular.length; j++) {
+		if(locationObj[0] == popular[j].location){
+			count = popular[j].count
+		}
+	}
 	var locationsAsString = JSON.stringify(location)
 	var popularAsString = JSON.stringify(popular)
 	console.log(popularAsString)
@@ -310,6 +318,13 @@ function sendSingleCenterMap(res, html, location, popular) {
 	</body>
 
 	${html}
+	<h3 style = "margin-left:2%;">Vaccination Center: "${centerName}"</h3>	
+	<p >
+	<a style = "margin-left:2%;" href="javascript: conduct_vacc_at_center();">
+			<button>💉 Conduct Single Vaccination</button> </a>
+	</p>
+
+	<a style = "margin-left:2%;">${count} People have been vaccinated in ${centerName}</a>
 	
 	</html>
 	
@@ -350,6 +365,7 @@ function sendSingleCenterMap(res, html, location, popular) {
 		}).addTo(map);
 
 		Newcircle.bindPopup("<b>" + currentCity + "</b><br>Vaccination Center " + currentCity + "<br> Count: " + count);
+
 		
 
 	</script>
