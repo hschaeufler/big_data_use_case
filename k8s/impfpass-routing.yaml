@@ -1,0 +1,33 @@
+#Ingress for frontend and backend
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: impfpass-ingress
+# no need for rewrite
+#  annotations:
+#    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: impfpass-frontend-service
+                port:
+                  number: 3000
+          - path: /vaccinationapi
+            pathType: Prefix
+            backend:
+              service:
+                name: impfpass-vaccination-service
+                port:
+                  number: 3000
+          - path: /userapi
+            pathType: Prefix
+            backend:
+              service:
+                name: impfpass-user-service
+                port:
+                  number: 3000

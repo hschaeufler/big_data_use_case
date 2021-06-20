@@ -16,9 +16,13 @@ git submodule init
 git submodule update
 ```
 ## Initialize
-It's recommended to that you give minikube a little more Memory. With the following commands you can allocate CPUs and Memory to the Kubernets cluster.
+If you are running on Windows and have Hyper-V, we recommend to use Hyper-V as default driver:
+```bash
+minikube config set driver hyperv
 ```
-minikube config set memory 8192
+It's recommended also that you give minikube a little more Memory. With the following commands you can allocate CPUs and Memory to the Kubernets cluster.
+```bash
+minikube config set memory 7168
 minikube config set cpus 4
 ```
 When you have already started kubernetes, you need to delete the current Cluster und restart it.
@@ -39,6 +43,19 @@ helm repo add strimzi http://strimzi.io/charts/
 helm install my-kafka-operator strimzi/strimzi-kafka-operator
 kubectl apply -f https://farberg.de/talks/big-data/code/helm-kafka-operator/kafka-cluster-def.yaml
 ```
+
+Maybe you get the following Error
+```bash
+C:\workspaces\bigdata\big-data-use-case>helm install my-kafka-operator strimzi/strimzi-kafka-operator
+Error: failed to download "strimzi/strimzi-kafka-operator" (hint: running `helm repo update` may help)
+```
+Then use ``helm repo update``
+
+Instead of the old kafka-cluster-def.yaml you have to use an upgraded version:
+```bash
+kubectl apply -f helm-kafka-operator\kafka-cluster-def.yaml
+```
+
 
 A running Hadoop cluster with YARN (for checkpointing)
 

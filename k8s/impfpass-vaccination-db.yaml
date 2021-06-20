@@ -1,0 +1,125 @@
+#Begin: Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: impfpass-vaccination-db-service
+spec:
+  selector:
+    app: impfpass-vaccination-db
+  ports:
+    - port: 3306
+  clusterIP: None
+#End: Service
+---
+#Begin: Configmap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: impfpass-vaccination-db-init-configmap
+data:
+  mysql-init.sql: |
+    CREATE TABLE `vaccination` (
+      `uuid` varchar(36) NOT NULL,
+      `timestamp` timestamp NOT NULL,
+      `vaccine` varchar(100) NOT NULL,
+      `chargeNumber` varchar(100) NOT NULL,
+      `disease` varchar(100) NOT NULL,
+      `location` varchar(100) NOT NULL,
+      `doctors_officename` varchar(100) NOT NULL,
+      `doctors_userid` varchar(36) NOT NULL,
+      `registration_uuid` varchar(36) NOT NULL,
+      `vaccinatedperson_name` varchar(100) NOT NULL,
+      `vaccinatedperson_userid` varchar(36) NOT NULL,
+      `registration_timestap` timestamp NOT NULL,
+      UNIQUE KEY `uuid_UNIQUE` (`uuid`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+    CREATE TABLE `vaccine` (
+      `vacid` bigint NOT NULL AUTO_INCREMENT,
+      `name` varchar(100) NOT NULL,
+      `disease` varchar(100) NOT NULL,
+      `authorizationHolder` varchar(100) DEFAULT NULL,
+      `approvalNumber` varchar(100) DEFAULT NULL,
+      `type` varchar(100) DEFAULT NULL,
+      PRIMARY KEY (`vacid`),
+      KEY `idx_vaccine_name` (`name`)
+    ) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+    INSERT INTO `vaccine` VALUES
+        (2,'Comirnaty','COVID-19','BioNTech Manufacturing GmbH','EU/1/20/1528','mRNA'),
+        (3,'Covid-19 Janssen','COVID-19','Janssen-Cilag International NV','EU/1/20/1525','Vector'),
+        (4,'Covid-19 Moderna','COVID-19','Moderna Biotech Spain, S.L.','EU/1/20/1507','mRNA'),
+        (5,'Vaxzevria ','COVID-19','AtraZeneca AB, Schweden','EU/1/21/1529','Vector'),
+        (6,'Imvanex','Smallpox','Bavarian Nordic A/S','EU/1/13/855','Attenuated'),
+        (7,'Roatrix','Rotavirus','GlaxoSmithKline Biologicals s.a., Belgien','EU/1/05/330/001-011','Attenuated'),
+        (8,'RotaTeq','Rotavirus','MSD VACCINS, Lyon, France','EU/1/06/348/001-002 ','Attenuated'),
+        (9,'Priorix','Measles; Mumps; Rubella','A.C.A. Müller ADAG Pharma AG','PEI.H.02661.01.1','Attenuated'),
+        (10,'Priorix','Measles; Mumps; Rubella','Orifarm GmbH','PEI.H.03126.01.1','Attenuated');
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: impfpass-vaccination-db
+spec:
+  selector:
+    matchLabels:
+      app: impfpass-vaccination-db
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: impfpass-vaccination-db
+    spec:
+      containers:
+        - name: impfpass-vaccination-db
+          image: mysql
+          env:
+            # Use secret in real usage
+            - name: MYSQL_ROOT_PASSWORD
+              value: "root"
+            - name: MYSQL_DATABASE
+              value: "vacbook"
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+            - name: init-volume
+              mountPath: /docker-entrypoint-initdb.d/
+            - name: impfpass-vaccination-db-persistent-storage
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: init-volume
+          configMap:
+            name: impfpass-vaccination-db-init-configmap
+        - name: impfpass-vaccination-db-persistent-storage
+          persistentVolumeClaim:
+            claimName: impfpass-vaccination-db-pv-claim
+---
+#see: https://minikube.sigs.k8s.io/docs/handbook/persistent_volumes/
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: impfpass-vaccination-db-pv-volume
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 2Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/data/impfpass-vaccination-db"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: impfpass-vaccination-db-pv-claim
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi

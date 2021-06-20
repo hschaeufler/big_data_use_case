@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: impfpass-frontend-deployment
+  labels:
+    app: impfpass-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: impfpass-frontend
+  template:
+    metadata:
+      labels:
+        app: impfpass-frontend
+    spec:
+      containers:
+        - name: impfpass-frontend
+          image: schaeufler/impfpass-frontend
+          ports:
+            - containerPort: 3000
+---
+#Impfpass Frontend Service
+# see for further details: https://kubernetes.io/docs/concepts/services-networking/service/
+apiVersion: v1
+kind: Service
+metadata:
+  name: impfpass-frontend-service
+spec:
+  selector:
+    app: impfpass-frontend
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
