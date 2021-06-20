@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: impfpass-user-microservice-deployment
+  labels:
+    app: impfpass-user-microservice
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: impfpass-user-microservice
+  template:
+    metadata:
+      labels:
+        app: impfpass-user-microservice
+    spec:
+      containers:
+        - name: impfpass-user-microservice
+          image: schaeufler/impfpass-user-microservice
+          ports:
+            - containerPort: 3000
+#          envFrom:
+#            - configMapRef:
+#                name: impfpassapp-configmap
+          env:
+            # Definition of Env-Vars
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: impfpass-user-microservice-configmap
+                  key: PORT
+            - name: APP_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: impfpass-user-microservice-configmap
+                  key: APP_ENV
+            #Have a look at: https://kubernetes.io/docs/concepts/configuration/secret/
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: impfass-user-db-secret
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: impfass-user-db-secret
+                  key: password
+          volumeMounts:
+            - name: config
+              #specify folder
+              mountPath: "/conf"
+              readOnly: true
+      volumes:
+        # See: https://kubernetes.io/docs/concepts/configuration/configmap/
+        - name: config
+          configMap:
+            name: impfpass-user-microservice-configmap
+            # The Keys from the Config-Map to create a file of
+            items:
+              - key: "db.env"
+                path: "db.env"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: impfpass-user-microservice-configmap
+data:
+  PORT: "3000"
+  APP_ENV: "production"
+  db.env: |
+    DB_HOST=impfpass-user-db-service
+    DB_NAME=vacbook
+    DB_PORT=3306
+    DB_WAITFORCONNECTIONS=true
+    DB_CONNECTION_LIMIT=10
+    DB_QUEUE_LIMIT=0
+---
+#Impfpass User Service
+# see for further details: https://kubernetes.io/docs/concepts/services-networking/service/
+apiVersion: v1
+kind: Service
+metadata:
+  name: impfpass-user-service
+spec:
+  selector:
+    app: impfpass-user-microservice
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000

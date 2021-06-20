@@ -214,6 +214,7 @@ async function getPopular(maxCount) {
 // Return HTML for start page
 app.get("/", (req, res) => {
 	const topX = 10;
+	console.log(req.url);
 	Promise.all([getMissions(), getPopular(topX)]).then(values => {
 		const missions = values[0]
 		const popular = values[1]
@@ -268,6 +269,8 @@ async function getMission(mission) {
 
 app.get("/missions/:mission", (req, res) => {
 	let mission = req.params["mission"]
+
+	console.log("Track-Mission",mission);
 
 	// Send the tracking message to Kafka
 	sendTrackingMessage({

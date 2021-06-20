@@ -1,0 +1,100 @@
+#Begin: Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: impfpass-user-db-service
+spec:
+  selector:
+    app: impfpass-user-db
+  ports:
+    - port: 3306
+  clusterIP: None
+#End: Service
+---
+#Begin: Configmap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: impfpass-user-db-init-configmap
+data:
+  mysql-init.sql: |
+    CREATE TABLE `user` (
+      `mail` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+      `password` varchar(100) NOT NULL,
+      `lastname` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
+      `firstname` varchar(100) NOT NULL,
+      `role` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+      `officename` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
+      `timestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      `userid` varchar(36) NOT NULL DEFAULT (uuid()),
+      `location` varchar(100) NOT NULL,
+      PRIMARY KEY (`userid`),
+      UNIQUE KEY `username_UNIQUE` (`mail`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: impfpass-user-db
+spec:
+  selector:
+    matchLabels:
+      app: impfpass-user-db
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: impfpass-user-db
+    spec:
+      containers:
+        - name: impfpass-user-db
+          image: mysql
+          env:
+            # Use secret in real usage
+            - name: MYSQL_ROOT_PASSWORD
+              value: "root"
+            - name: MYSQL_DATABASE
+              value: "vacbook"
+          ports:
+            - containerPort: 3306
+          volumeMounts:
+            - name: init-volume
+              mountPath: /docker-entrypoint-initdb.d/
+            - name: impfpass-user-db-persistent-storage
+              mountPath: /var/lib/mysql
+      volumes:
+        - name: init-volume
+          configMap:
+            name: impfpass-user-db-init-configmap
+        - name: impfpass-user-db-persistent-storage
+          persistentVolumeClaim:
+            claimName: impfpass-user-db-pv-claim
+---
+#see: https://minikube.sigs.k8s.io/docs/handbook/persistent_volumes/
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: impfpass-user-db-pv-volume
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 2Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/data/impfpass-user-db"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: impfpass-user-db-pv-claim
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi

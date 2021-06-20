@@ -4,3 +4,9 @@
 [submodule "impfpass-backend"]
 	path = impfpass-backend
 	url = https://github.com/hschaeufler/impfpass-backend.git
+[submodule "impfpass-user-microservice"]
+	path = impfpass-user-microservice
+	url = https://github.com/hschaeufler/impfpass-user-microservice.git
+[submodule "imfpass-vaccination-microservice"]
+	path = imfpass-vaccination-microservice
+	url = https://github.com/hschaeufler/impfpass-vaccination-microservice.git
