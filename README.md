@@ -1,11 +1,5 @@
 # Use Case: Impfpass
-
-```json
-{ 
-	mission: 'sts-10', 
-	timestamp: 1604325221 
-}
-```
+This is an digital Vaccinationpass.
 
 ## Git Clone
 This Project is using Git submodules. To clone the whole project please proceed as follows:
