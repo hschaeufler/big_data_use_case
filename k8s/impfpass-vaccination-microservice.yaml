@@ -41,6 +41,11 @@ spec:
                 secretKeyRef:
                   name: impfass-vaccination-db-secret
                   key: password
+            - name: JWT_TOKEN_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: impfass-jwt-secret
+                  key: jwt-token-secret
           volumeMounts:
             - name: config
               #specify folder
@@ -55,6 +60,8 @@ spec:
             items:
               - key: "db.env"
                 path: "db.env"
+              - key: "kafka.env"
+                path: "kafka.env"
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -70,6 +77,10 @@ data:
     DB_WAITFORCONNECTIONS=true
     DB_CONNECTION_LIMIT=10
     DB_QUEUE_LIMIT=0
+  kafka.env: |
+    KAFKA_BROKER=my-cluster-kafka-bootstrap:9092
+    CLAIM_TOPIC=CLAIM-TOPIC
+    REGISTRATION_TOPIC=REGISTRATION-TOPIC
 ---
 #Impfpass Vaccination Service
 # see for further details: https://kubernetes.io/docs/concepts/services-networking/service/
