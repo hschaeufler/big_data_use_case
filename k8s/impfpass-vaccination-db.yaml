@@ -30,7 +30,7 @@ data:
       `registration_uuid` varchar(36) NOT NULL,
       `vaccinatedperson_name` varchar(100) NOT NULL,
       `vaccinatedperson_userid` varchar(36) NOT NULL,
-      `registration_timestap` timestamp NOT NULL,
+      `registration_timestamp` timestamp NOT NULL,
       UNIQUE KEY `uuid_UNIQUE` (`uuid`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 

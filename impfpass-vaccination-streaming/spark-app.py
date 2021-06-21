@@ -1,79 +1,108 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import *
-from pyspark.sql.types import IntegerType, StringType, StructType, TimestampType
+from pyspark.sql.types import IntegerType, StringType, StructType, TimestampType, StructField
 import mysqlx
 
-dbOptions = {"host": "my-app-mysql-service", 'port': 33060, "user": "root", "password": "mysecretpw"}
-dbSchema = 'popular'
-windowDuration = '5 minutes'
-slidingDuration = '1 minute'
+dbOptions = {"host": "impfpass-vaccination-db-service", 'port': 33060, "user": "root", "password": "root"}
+dbSchema = 'vacbook'
 
-# Example Part 1
+
+waterMark = '2 hours'
+slidingDuration = '10 seconds'
+
 # Create a spark session
 spark = SparkSession.builder \
-    .appName("Structured Streaming").getOrCreate()
+    .appName("StructuredVaccinationStream")\
+    .getOrCreate()
 
 # Set log level
 spark.sparkContext.setLogLevel('WARN')
 
-# Example Part 2
-# Read messages from Kafka
-kafkaMessages = spark \
+# Have a look at https://spark.apache.org/docs/latest/structured-streaming-kafka-integration.html
+# Read Vaccination-Claims from Kafka with earliest startingOffset for streaming
+dfClaims = spark \
     .readStream \
     .format("kafka") \
     .option("kafka.bootstrap.servers",
             "my-cluster-kafka-bootstrap:9092") \
-    .option("subscribe", "tracking-data") \
+    .option("subscribe", "CLAIM-TOPIC") \
     .option("startingOffsets", "earliest") \
-    .load()
+    .load()\
+    .selectExpr("CAST(value AS STRING)")
 
+# Read Vaccination-Registrations from Kafka with earliest startingOffset for streaming
+dfRegistrations = spark \
+    .readStream \
+    .format("kafka") \
+    .option("kafka.bootstrap.servers",
+            "my-cluster-kafka-bootstrap:9092") \
+    .option("subscribe", "REGISTRATION-TOPIC") \
+    .option("startingOffsets", "earliest") \
+    .load()\
+    .selectExpr("CAST(value AS STRING)")
+
+#--------------2. Defining Schemas-------------------------------------------------------------------------------------#
+# Have a look at https://sparkbyexamples.com/pyspark/pyspark-structtype-and-structfield/
+# and https://spark.apache.org/docs/latest/api/python/reference/api/pyspark.sql.types.StructType.html
 # Define schema of tracking data
-trackingMessageSchema = StructType() \
-    .add("mission", StringType()) \
-    .add("timestamp", IntegerType())
+vaccinationRegistrationSchema = StructType([ \
+    StructField("timestamp", TimestampType(), False), \
+    StructField("uuid", StringType(), False), \
+    StructField("vaccine", StringType(), False), \
+    StructField("disease", StringType(), False), \
+    StructField("chargeNumber", StringType(), False), \
+    StructField("location", StringType(), False), \
+    StructField("doctorsOffice", StringType(), False), \
+    StructField("doctorsId", StringType(), False), \
+ ])
 
-# Example Part 3
-# Convert value: binary -> JSON -> fields + parsed timestamp
-trackingMessages = kafkaMessages.select(
-    # Extract 'value' from Kafka message (i.e., the tracking data)
-    from_json(
-        column("value").cast("string"),
-        trackingMessageSchema
-    ).alias("json")
-).select(
-    # Convert Unix timestamp to TimestampType
-    from_unixtime(column('json.timestamp'))
-    .cast(TimestampType())
-    .alias("parsed_timestamp"),
+#Define schema of tracking data
+vaccinationClaimSchema = StructType([ \
+    StructField("timestamp", TimestampType(), False), \
+    StructField("uuid", StringType(), False), \
+    StructField("registrationId", StringType(), False), \
+    StructField("vaccinatedperson", StringType(), False), \
+    StructField("userid", StringType(), False), \
+  ])
 
-    # Select all JSON fields
-    column("json.*")
-) \
-    .withColumnRenamed('json.mission', 'mission') \
-    .withWatermark("parsed_timestamp", windowDuration)
+#--------------3. Convert Dataformat-----------------------------------------------------------------------------------#
+#http://spark.apache.org/docs/latest/api/python/reference/api/pyspark.sql.functions.from_json.html
+#
+dfRegistrations = dfRegistrations\
+    .withColumn("jsondata",from_json(dfRegistrations.value, vaccinationRegistrationSchema))\
+    .select(col("jsondata.*"))\
+    .withColumnRenamed("timestamp", "registration_timestamp") \
+    .withWatermark("registration_timestamp", waterMark) \
+    .withColumnRenamed("uuid", "registration_uuid")
 
-# Example Part 4
-# Compute most popular slides
-popular = trackingMessages.groupBy(
-    window(
-        column("parsed_timestamp"),
-        windowDuration,
-        slidingDuration
-    ),
-    column("mission")
-).count().withColumnRenamed('count', 'views')
+dfClaims = dfClaims \
+    .withColumn("jsondata",from_json(dfClaims.value, vaccinationClaimSchema)) \
+    .select(col("jsondata.*")) \
+    .withWatermark("timestamp", waterMark) \
+    .withColumnRenamed("uuid", "vaccionation_uuid")
 
-# Example Part 5
+#https://stackoverflow.com/questions/51070251/pyspark-explode-json-in-column-to-multiple-columns
+
+
+#--------------4. Inner Joins___________-------------------------------------------------------------------------------#
+#see: https://spark.apache.org/docs/latest/structured-streaming-programming-guide.html
+# Inner Joins with optional Watermarking
+
+dfVaccination = dfRegistrations\
+    .join(dfClaims,dfClaims.registrationId == dfRegistrations.registration_uuid)
+
+#--------------5.Back to Json for Kafka--------------------------------------------------------------------------------#
+# see https://stackoverflow.com/questions/60435907/pyspark-merge-multiple-columns-into-a-json-column
+
+#dfKafka = dfVaccination\
+#    .selectExpr("vaccionation_uuid as key","to_json(struct(*)) as value")
+#--------------6. Print Result to console------------------------------------------------------------------------------#
 # Start running the query; print running counts to the console
-consoleDump = popular \
+vaccinationConsoleDump = dfVaccination\
     .writeStream \
-    .trigger(processingTime=slidingDuration) \
-    .outputMode("update") \
     .format("console") \
-    .option("truncate", "false") \
+    .outputMode("Append") \
     .start()
-
-# Example Part 6
 
 
 def saveToDatabase(batchDataframe, batchId):
@@ -81,14 +110,50 @@ def saveToDatabase(batchDataframe, batchId):
     def save_to_db(iterator):
         # Connect to database and use schema
         session = mysqlx.get_session(dbOptions)
-        session.sql("USE popular").execute()
+        session.sql("USE vacbook").execute()
 
         for row in iterator:
+            print(row.vaccionation_uuid)
+            print(row.vaccine)
+            print(row.chargeNumber)
+            print(row.disease)
+            print(row.location)
+            print(row.timestamp)
+            print(row.doctorsOffice)
+            print(row.registration_uuid)
+            print(row.doctorsId)
+            print(row.vaccinatedperson)
+            print(row.userid)
+            print(row.registration_timestamp)
             # Run upsert (insert or update existing)
-            sql = session.sql("INSERT INTO popular "
-                              "(mission, count) VALUES (?, ?) "
-                              "ON DUPLICATE KEY UPDATE count=?")
-            sql.bind(row.mission, row.views, row.views).execute()
+            sql = session.sql("INSERT INTO vaccination " +
+                              "(uuid, " +
+                              "vaccine, " +
+                              "chargeNumber, " +
+                              "disease, " +
+                              "location, " +
+                              "timestamp, " +
+                              "doctors_officename, " +
+                              "registration_uuid, " +
+                              "doctors_uiserid, " +
+                              "vaccinatedperson_name, " +
+                              "vaccinatedperson_userid, " +
+                              "registration_timestamp) " +
+                              "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)")
+
+            sql.bind(row.vaccionation_uuid,
+                     row.vaccine,
+                     row.chargeNumber,
+                     row.disease,
+                     row.location,
+                     row.timestamp,
+                     row.doctorsOffice,
+                     row.registration_uuid,
+                     row.doctorsId,
+                     row.vaccinatedperson,
+                     row.userid,
+                     row.registration_timestamp)\
+                .execute()
 
         session.close()
 
@@ -98,11 +163,12 @@ def saveToDatabase(batchDataframe, batchId):
 # Example Part 7
 
 
-dbInsertStream = popular.writeStream \
+dbInsertStream = dfVaccination.writeStream \
     .trigger(processingTime=slidingDuration) \
-    .outputMode("update") \
+    .outputMode("Append") \
     .foreachBatch(saveToDatabase) \
     .start()
 
-# Wait for termination
+
 spark.streams.awaitAnyTermination()
+

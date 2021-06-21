@@ -62,6 +62,13 @@ helm install --namespace=default --set hdfs.dataNode.replicas=1 --set yarn.nodeM
 
 To develop using [Skaffold](https://skaffold.dev/), use `skaffold dev`. 
 
+## Certificate
+
+```bash
+openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 10000 -nodes
+```
+
+
 ## Troubleshooting
 
 Maybe following Commands will help you, when you have Problems running the Use-Case.

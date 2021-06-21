@@ -16,8 +16,8 @@ build:
     - image: schaeufler/impfpass-user-microservice
       context: impfpass-user-microservice
 
-    - image: schaeufler/imfpass-Vaccination-streaming
-      context: imfpass-Vaccination-streaming
+    - image: schaeufler/impfpass-vaccination-streaming
+      context: impfpass-vaccination-streaming
 
 deploy:
   kubectl:
