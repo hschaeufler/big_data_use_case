@@ -1,5 +1,5 @@
 # Use Case: Impfpass
-This is an digital Vaccinationpass.
+This is an digital Vaccination Certificate-App.
 
 ## Git Clone
 This Project is using Git submodules. To clone the whole project please proceed as follows:
@@ -16,7 +16,7 @@ minikube config set driver hyperv
 ```
 It's recommended also that you give minikube a little more Memory. With the following commands you can allocate CPUs and Memory to the Kubernets cluster.
 ```bash
-minikube config set memory 7168
+minikube config set memory 8192
 minikube config set cpus 4
 ```
 When you have already started kubernetes, you need to delete the current Cluster und restart it.
@@ -85,8 +85,6 @@ It should look like this. Please use the correct Ip-Adress.
 ```
 
 Then you can open the App with following Adress in your Browser: [https://vac.book](https://vac.book)
-
-
 
 ## Troubleshooting
 
