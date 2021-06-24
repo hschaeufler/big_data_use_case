@@ -1,9 +1,14 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import *
 from pyspark.sql.types import IntegerType, StringType, StructType, TimestampType, StructField
+import os
 import mysqlx
 
-dbOptions = {"host": "impfpass-vaccination-db-service", 'port': 33060, "user": "root", "password": "root"}
+dbOptions = {"host": os.environ['DATABASE_HOST'],
+             'port': os.environ['DATABASE_PORT'],
+             "user": os.environ['DB_USERNAME'],
+             "password": os.environ['DB_PASSWORD']}
+
 dbSchema = 'vacbook'
 
 
@@ -107,7 +112,9 @@ claimConsoleDump = dfClaimsWithWM \
     .start()
 
 #--------------6. Join the two Dataframes with Watermarks--------------------------------------------------------------#
-
+#See: https://spark.apache.org/docs/latest/structured-streaming-programming-guide.html#join-operations
+# But it's a little bit slow.
+# See also: https://stackoverflow.com/questions/60525759/spark-streaming-join-on-multiple-kafka-stream-operation-is-slow
 
 dfVaccination = dfClaimsWithWM\
     .join(dfRegistrationsWithWM,

@@ -188,6 +188,20 @@ spec:
               value: "root"
             - name: HADOOP_JAAS_DEBUG
               value: "true"
+            - name: DATABASE_HOST
+              value: "impfpass-vaccination-db-service"
+            - name: DATABASE_PORT
+              value: "33060"
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: impfass-vaccination-db-secret
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: impfass-vaccination-db-secret
+                  key: password
           volumeMounts:
             - name: hadoop-conf-volume
               mountPath: /hadoop-config
