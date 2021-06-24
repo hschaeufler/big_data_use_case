@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: popular-slides-spark-hadoop-conf
+  name: impfpass-vaccination-streaming-hadoop-conf
 data:
   # https://stackoverflow.com/questions/38482779/spark-submit-yarn-mode-hadoop-conf-dir-contents/38483127
   core-site.xml: |
@@ -164,22 +164,22 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: popular-slides-spark
+  name: impfpass-vaccination-streaming
   labels:
-    app: popular-slides-spark
+    app: impfpass-vaccination-streaming
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: popular-slides-spark
+      app: impfpass-vaccination-streaming
   template:
     metadata:
       labels:
-        app: popular-slides-spark
+        app: impfpass-vaccination-streaming
     spec:
       containers:
-        - name: popular-slides-spark
-          image: farberg/popular-slides-spark
+        - name: impfpass-vaccination-streaming
+          image: schaeufler/impfpass-vaccination-streaming
           # Mount the volume that has been populated by the init container
           env:
             - name: HADOOP_CONF_DIR
@@ -188,11 +188,24 @@ spec:
               value: "root"
             - name: HADOOP_JAAS_DEBUG
               value: "true"
-
+            - name: DATABASE_HOST
+              value: "impfpass-vaccination-db-service"
+            - name: DATABASE_PORT
+              value: "33060"
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: impfass-vaccination-db-secret
+                  key: username
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: impfass-vaccination-db-secret
+                  key: password
           volumeMounts:
             - name: hadoop-conf-volume
               mountPath: /hadoop-config
       volumes:
         - name: hadoop-conf-volume
           configMap:
-            name: popular-slides-spark-hadoop-conf
+            name: impfpass-vaccination-streaming-hadoop-conf

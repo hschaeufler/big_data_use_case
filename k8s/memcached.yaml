@@ -19,6 +19,7 @@ spec:
       containers:
         - name: my-memcached
           image: memcached:alpine
+          imagePullPolicy: Never
           ports:
             - containerPort: 11211
 #End: Deployment

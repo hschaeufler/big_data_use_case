@@ -1,11 +1,5 @@
 # Use Case: Impfpass
-
-```json
-{ 
-	mission: 'sts-10', 
-	timestamp: 1604325221 
-}
-```
+This is an digital Vaccination Certificate-App.
 
 ## Git Clone
 This Project is using Git submodules. To clone the whole project please proceed as follows:
@@ -22,7 +16,7 @@ minikube config set driver hyperv
 ```
 It's recommended also that you give minikube a little more Memory. With the following commands you can allocate CPUs and Memory to the Kubernets cluster.
 ```bash
-minikube config set memory 7168
+minikube config set memory 8192
 minikube config set cpus 4
 ```
 When you have already started kubernetes, you need to delete the current Cluster und restart it.
@@ -67,6 +61,30 @@ helm install --namespace=default --set hdfs.dataNode.replicas=1 --set yarn.nodeM
 ## Deploy
 
 To develop using [Skaffold](https://skaffold.dev/), use `skaffold dev`. 
+
+## Certificate
+
+Because some Progressive Web App-Features like the Media Devices API (for getting Access to the Webcam)  requires a Secure Context (https), a self signed Certificate was used for the ingress. 
+The following Parameters was used to sign this Certificate. It's valid for 10.000 days.
+
+```bash
+openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 10000 -nodes
+```
+## Open the App
+
+For opening the App, please get the  IP adress if the Ingress using following coammand:
+```bash
+kubectl get ingress
+```
+Then you have to add the IP-Adress with the Hostname vac.book to your ``etc/host``-File. In Windows it's under following Location: ``C:\Windows\System32\drivers\etc``.
+
+It should look like this. Please use the correct Ip-Adress.
+```
+# Vacbook
+172.19.67.118 vac.book
+```
+
+Then you can open the App with following Adress in your Browser: [https://vac.book](https://vac.book)
 
 ## Troubleshooting
 

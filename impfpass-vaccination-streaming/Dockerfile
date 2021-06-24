@@ -1,5 +1,6 @@
-FROM bitnami/spark:3.0.0
+FROM bitnami/spark:3.1.2
 LABEL maintainer="Dennis Pfisterer, http://dennis-pfisterer.de"
+LABEL version="1.0"
 WORKDIR /app
 
 #------------------------------------
@@ -7,7 +8,7 @@ WORKDIR /app
 
 # Java Dependencies for Spark Kafka
 # These are obtained using Ivy later
-ENV SPARK_VERSION "3.0.0"
+ENV SPARK_VERSION "3.1.2"
 ENV SPARK_KAFKA_DEPENDENCY "org.apache.spark:spark-sql-kafka-0-10_2.12:${SPARK_VERSION}"
 ENV IVY_PACKAGE_DIR "/tmp/.ivy"
 

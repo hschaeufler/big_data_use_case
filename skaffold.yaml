@@ -6,11 +6,6 @@ metadata:
 
 build:
   artifacts:
-#    - image: farberg/popular-slides
-#      context: web-app
-
-    - image: farberg/popular-slides-spark
-      context: spark-app
 
     - image: schaeufler/impfpass-frontend
       context: impfpass-frontend
@@ -20,6 +15,9 @@ build:
 
     - image: schaeufler/impfpass-user-microservice
       context: impfpass-user-microservice
+
+    - image: schaeufler/impfpass-vaccination-streaming
+      context: impfpass-vaccination-streaming
 
 deploy:
   kubectl:
