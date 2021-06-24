@@ -11,6 +11,13 @@ spec:
   clusterIP: None
 #End: Service
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: impfpass-vaccination-db-configmap
+data:
+  DATABASE_NAME: "vacbook"
+---
 #Begin: Configmap
 apiVersion: v1
 kind: ConfigMap
@@ -18,7 +25,7 @@ metadata:
   name: impfpass-vaccination-db-init-configmap
 data:
   mysql-init.sql: |
-    CREATE TABLE `vaccination` (
+    CREATE TABLE IF NOT EXISTS `vaccination` (
       `uuid` varchar(36) NOT NULL,
       `timestamp` timestamp NOT NULL,
       `vaccine` varchar(100) NOT NULL,
@@ -34,7 +41,7 @@ data:
       UNIQUE KEY `uuid_UNIQUE` (`uuid`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-    CREATE TABLE `vaccine` (
+    CREATE TABLE IF NOT EXISTS `vaccine` (
       `vacid` bigint NOT NULL AUTO_INCREMENT,
       `name` varchar(100) NOT NULL,
       `disease` varchar(100) NOT NULL,
@@ -45,7 +52,7 @@ data:
       KEY `idx_vaccine_name` (`name`)
     ) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
-    INSERT INTO `vaccine` VALUES
+    INSERT IGNORE INTO `vaccine` VALUES
         (2,'Comirnaty','COVID-19','BioNTech Manufacturing GmbH','EU/1/20/1528','mRNA'),
         (3,'Covid-19 Janssen','COVID-19','Janssen-Cilag International NV','EU/1/20/1525','Vector'),
         (4,'Covid-19 Moderna','COVID-19','Moderna Biotech Spain, S.L.','EU/1/20/1507','mRNA'),
@@ -55,7 +62,10 @@ data:
         (8,'RotaTeq','Rotavirus','MSD VACCINS, Lyon, France','EU/1/06/348/001-002 ','Attenuated'),
         (9,'Priorix','Measles; Mumps; Rubella','A.C.A. Müller ADAG Pharma AG','PEI.H.02661.01.1','Attenuated'),
         (10,'Priorix','Measles; Mumps; Rubella','Orifarm GmbH','PEI.H.03126.01.1','Attenuated');
-
+  init.sh: |
+    echo "Start Custom Init"
+    mysql $MYSQL_DATABASE < mysql-init.sql -uroot -p$MYSQL_ROOT_PASSWORD
+    echo "End Custom Init"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -75,12 +85,26 @@ spec:
       containers:
         - name: impfpass-vaccination-db
           image: mysql
+          imagePullPolicy: Never
+          # Sometimes the table was not there, because the init-db Script gets only
+          # executed when /var/lib/mysql is not present, so we mount also a init.sh-File, which will call after pod
+          # start
+          lifecycle:
+            postStart:
+              exec:
+                command: [ "/bin/sh", "-c", "/docker-entrypoint-initdb.d/init.sh &" ]
           env:
             # Use secret in real usage
             - name: MYSQL_ROOT_PASSWORD
-              value: "root"
+              valueFrom:
+                secretKeyRef:
+                  name: impfass-vaccination-db-secret
+                  key: password
             - name: MYSQL_DATABASE
-              value: "vacbook"
+              valueFrom:
+                configMapKeyRef:
+                  name: impfpass-vaccination-db-configmap
+                  key: DATABASE_NAME
           ports:
             - containerPort: 3306
           volumeMounts:

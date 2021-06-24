@@ -188,7 +188,6 @@ spec:
               value: "root"
             - name: HADOOP_JAAS_DEBUG
               value: "true"
-
           volumeMounts:
             - name: hadoop-conf-volume
               mountPath: /hadoop-config

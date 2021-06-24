@@ -9,7 +9,13 @@ spec:
   ports:
     - port: 3306
   clusterIP: None
-#End: Service
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: impfpass-user-db-configmap
+data:
+  DATABASE_NAME: "vacbook"
 ---
 #Begin: Configmap
 apiVersion: v1
@@ -18,7 +24,7 @@ metadata:
   name: impfpass-user-db-init-configmap
 data:
   mysql-init.sql: |
-    CREATE TABLE `user` (
+    CREATE TABLE IF NOT EXISTS `user` (
       `mail` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
       `password` varchar(100) NOT NULL,
       `lastname` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
@@ -31,6 +37,10 @@ data:
       PRIMARY KEY (`userid`),
       UNIQUE KEY `username_UNIQUE` (`mail`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3
+  init.sh: |
+    echo "Start Custom Init"
+    mysql $MYSQL_DATABASE < mysql-init.sql -uroot -p$MYSQL_ROOT_PASSWORD
+    echo "End Custom Init"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -50,12 +60,24 @@ spec:
       containers:
         - name: impfpass-user-db
           image: mysql
+          # Sometimes the table was not there, because the init-db Script gets only
+          # executed when /var/lib/mysql is not present, so we mount also a init.sh-File, which will call after pod
+          # start
+          lifecycle:
+            postStart:
+              exec:
+                command: [ "/bin/sh", "-c", "/docker-entrypoint-initdb.d/init.sh &" ]
           env:
-            # Use secret in real usage
             - name: MYSQL_ROOT_PASSWORD
-              value: "root"
+              valueFrom:
+                secretKeyRef:
+                  name: impfass-user-db-secret
+                  key: password
             - name: MYSQL_DATABASE
-              value: "vacbook"
+              valueFrom:
+                configMapKeyRef:
+                  name: impfpass-user-db-configmap
+                  key: DATABASE_NAME
           ports:
             - containerPort: 3306
           volumeMounts:
@@ -67,6 +89,7 @@ spec:
         - name: init-volume
           configMap:
             name: impfpass-user-db-init-configmap
+            defaultMode: 0777
         - name: impfpass-user-db-persistent-storage
           persistentVolumeClaim:
             claimName: impfpass-user-db-pv-claim
