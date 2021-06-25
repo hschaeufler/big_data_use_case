@@ -1,7 +1,9 @@
 # Use Case: Impfpass
-This is a digital Big-Data Vaccination Certificate-App. 
+This is a digital Big-Data Vaccination Certificate-Prototype-App and an Examination performance. 
 
-The Base of this Application was implemented by our BigData-Professor.
+The Base of this Application was another Big-Data-Application implemented by our Big-Data-Professor Prof. Dr.-Ing. habil. Dennis Pfisterer.
+
+Some Parts of his parts, are still present in this Readme and in the Code of this Application.
 
 ## Git Clone
 This Project is using Git submodules. To clone the whole project please proceed as follows:
@@ -146,3 +148,7 @@ Show all running container
 ```
 docker ps
 ````
+
+## Closing Note
+
+Be careful when you use this App. It is a Prototype, not a Production-Ready Application. For example, we do not have any  Html and JavaScript-Sanitation.
