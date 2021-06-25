@@ -1,5 +1,7 @@
 # Use Case: Impfpass
-This is an digital Vaccination Certificate-App.
+This is a digital Big-Data Vaccination Certificate-App. 
+
+The Base of this Application was implemented by our BigData-Professor.
 
 ## Git Clone
 This Project is using Git submodules. To clone the whole project please proceed as follows:
