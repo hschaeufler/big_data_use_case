@@ -85,7 +85,6 @@ spec:
       containers:
         - name: impfpass-vaccination-db
           image: mysql
-          imagePullPolicy: Never
           # Sometimes the table was not there, because the init-db Script gets only
           # executed when /var/lib/mysql is not present, so we mount also a init.sh-File, which will call after pod
           # start

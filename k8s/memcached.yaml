@@ -7,7 +7,7 @@ metadata:
     app: memcache-deployment
 spec:
   # Three memcached instances
-  replicas: 2
+  replicas: 3
   selector:
     matchLabels:
       app: my-memcached
@@ -19,11 +19,9 @@ spec:
       containers:
         - name: my-memcached
           image: memcached:alpine
-          imagePullPolicy: Never
           ports:
             - containerPort: 11211
 #End: Deployment
-
 ---
 #Begin: Service
 kind: Service
